@@ -161,6 +161,9 @@ extern int debug;
 
 #endif
 
+	BOOL				vSyncPreference;
+	unsigned			_displayRefreshRate;
+
 	NSSize				firstScreen;
 
    // Mouse mode indicator (for mouse movement model)
@@ -170,6 +173,10 @@ extern int debug;
 - (void) initSplashScreen;
 - (void) endSplashScreen;
 - (void) autoShowMouse;
+
+- (unsigned) displayRefreshRate;
+- (BOOL) vSyncActive;
+- (BOOL) setVSyncIfRequested;
 
 - (void) setStringInput: (enum StringInput) value;
 - (void) allowStringInput: (BOOL) value;

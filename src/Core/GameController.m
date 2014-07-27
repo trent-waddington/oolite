@@ -300,6 +300,13 @@ static GameController *sSharedController = nil;
 		gameView = [MyOpenGLView alloc];
 		[gameView init];
 		[gameView setGameController:self];
+		
+		// Set the animation timer interval based on v-sync settings
+		if ([gameView vSyncActive] && [gameView displayRefreshRate] != 0)
+		{
+			_animationTimerInterval = 1.0 / [gameView displayRefreshRate];
+		}
+		
 		[gameView initSplashScreen];
 	}
 #else
