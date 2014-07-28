@@ -302,7 +302,7 @@ static GameController *sSharedController = nil;
 		[gameView setGameController:self];
 		
 		// Set the animation timer interval based on v-sync settings
-		if ([gameView vSyncActive] && [gameView displayRefreshRate] != 0)
+		if ([gameView vSyncInternalActive])
 		{
 			_animationTimerInterval = 1.0 / [gameView displayRefreshRate];
 		}

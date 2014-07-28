@@ -786,9 +786,9 @@ MA 02110-1301, USA.
 }
 
 
-- (BOOL) vSyncActive
+- (BOOL) vSyncInternalActive
 {
-	return vSyncPreference;
+	return vSyncPreference && _displayRefreshRate != 0;
 }
 
 

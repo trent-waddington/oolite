@@ -175,7 +175,7 @@ extern int debug;
 - (void) autoShowMouse;
 
 - (unsigned) displayRefreshRate;
-- (BOOL) vSyncActive;
+- (BOOL) vSyncInternalActive;
 - (BOOL) setVSyncIfRequested;
 
 - (void) setStringInput: (enum StringInput) value;
