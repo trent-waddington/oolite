@@ -42,6 +42,11 @@ MA 02110-1301, USA.
 
 #include <ctype.h>
 
+#if OOLITE_LINUX
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
+#endif
+
 @interface MyOpenGLView (OOPrivate)
 
 - (void) handleStringInput: (SDL_KeyboardEvent *) kbd_event; // DJS
@@ -326,14 +331,20 @@ MA 02110-1301, USA.
 {
 		BOOL	vSyncSet = NO;
 		
-#if OOLITE_WINDOWS
 	if (vSyncPreference)
 	{
+#if OOLITE_WINDOWS
 		DEVMODE settings;
 		settings.dmSize        = sizeof(DEVMODE);
 		settings.dmDriverExtra = 0;
 		EnumDisplaySettings(0, ENUM_CURRENT_SETTINGS, &settings);
 		_displayRefreshRate = settings.dmDisplayFrequency;
+#elif OOLITE_LINUX
+		Display *dpy = XOpenDisplay(NULL);
+		Window root = RootWindow(dpy, 0);
+		XRRScreenConfiguration *conf = XRRGetScreenInfo(dpy, root);
+		_displayRefreshRate = XRRConfigCurrentRate(conf);
+#endif
 		
 		if (_displayRefreshRate == 0 || _displayRefreshRate == 1U) 
 		{
@@ -347,7 +358,6 @@ MA 02110-1301, USA.
 			vSyncSet = YES;
 		}
 	}
-#endif	// OOLITE_WINDOWS
 
 	if (!vSyncSet)
 	{
