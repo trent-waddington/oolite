@@ -343,7 +343,10 @@ MA 02110-1301, USA.
 		Display *dpy = XOpenDisplay(NULL);
 		Window root = RootWindow(dpy, 0);
 		XRRScreenConfiguration *conf = XRRGetScreenInfo(dpy, root);
-		_displayRefreshRate = XRRConfigCurrentRate(conf);
+		if (conf != NULL)
+		{
+			_displayRefreshRate = XRRConfigCurrentRate(conf);
+		}
 #endif
 		
 		if (_displayRefreshRate == 0 || _displayRefreshRate == 1U) 
