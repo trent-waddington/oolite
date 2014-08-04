@@ -317,21 +317,30 @@ MA 02110-1301, USA.
 
 
 // Setting V-Sync if it has been requested. Default is V-Sync on.
-// This method will query the OS regarding the current display 
-// refresh rate and store the refresh rate value. Then the
-// GameController class will use this value to adjust the animation
-// timer interval so that it matches that refresh rate.
-// If all this fails, then we fall back to the SDL method of setting
-// V-Sync, which I honestly don't trust that much to do a very good job.
-// FIXME: Currently only works on Windows; Linux should be possible as well,
-// provided someone provides the code for querying the OS for refresh rate.
-// Right now refresh rate should be set to 0 for Linux, which basically
-// is equivalent to disabling the internal V-Sync state. - Nikos 20140727
+// If V-Sync setting is successful, then this method will query
+// the OS regarding the current display refresh rate and store the
+// refresh rate value. Then the GameController class will use this
+// value to adjust the animation timer interval so that it matches
+// that refresh rate. It looks like doing so results in somewhat
+// smoother animation, especially on lower end cards - Nikos 20140727
 - (BOOL) setVSyncIfRequested
 {
-		BOOL	vSyncSet = NO;
-		
-	if (vSyncPreference)
+	BOOL	vSyncSet = NO;
+	int		vSyncValue;
+
+	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, vSyncPreference);	// V-sync on by default.
+	OOLog(@"display.initGL", @"V-Sync %@requested.", vSyncPreference ? @"" : @"not ");
+	// Verify V-sync successfully set - report it if not
+	if (vSyncPreference && SDL_GL_GetAttribute(SDL_GL_SWAP_CONTROL, &vSyncValue) == -1)
+	{
+		OOLogWARN(@"display.initGL", @"Could not enable V-Sync. Please check that your graphics driver supports the %@_swap_control extension.",
+				OOLITE_WINDOWS ? @"WGL_EXT" : @"[GLX_SGI/GLX_MESA]");
+	}
+	else  vSyncSet = YES;
+	
+	// If V-Sync has been requested, cap the animation timer to output FPS equal to display's refresh rate - 
+	// it seems to generate smoother animation, especially on lower-spec graphics cards - Nikos 20140804
+	if (vSyncPreference && vSyncSet)
 	{
 #if OOLITE_WINDOWS
 		DEVMODE settings;
@@ -348,34 +357,17 @@ MA 02110-1301, USA.
 			_displayRefreshRate = XRRConfigCurrentRate(conf);
 		}
 #endif
-		
 		if (_displayRefreshRate == 0 || _displayRefreshRate == 1U) 
 		{
-			OOLog(@"display.initGL", @"Invalid display refresh rate value received (%u). Attempting to set V-Sync via SDL.",
-									_displayRefreshRate);
+			OOLog(@"display.initGL", @"Invalid display refresh rate value received (%u). Animation timer interval will not be capped.",
+								_displayRefreshRate);
 			_displayRefreshRate = 0;
 		}
 		else
 		{
-			OOLog(@"display.initGL", @"V-sync requested. Display refresh rate: %u Hz.", _displayRefreshRate);
-			vSyncSet = YES;
+			OOLog(@"display.initGL", @"Animation timer interval capped to %.3f seconds to match display refresh rate of %u Hz.", 1.0 / _displayRefreshRate, _displayRefreshRate);
 		}
 	}
-
-	if (!vSyncSet)
-	{
-		int		vSyncValue;
-		SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, vSyncPreference);	// V-sync on by default.
-		OOLog(@"display.initGL", @"V-Sync %@requested.", vSyncPreference ? @"" : @"not ");
-		// Verify V-sync successfully set - report it if not
-		if (vSyncPreference && SDL_GL_GetAttribute(SDL_GL_SWAP_CONTROL, &vSyncValue) == -1)
-		{
-			OOLogWARN(@"display.initGL", @"Could not enable V-Sync. Please check that your graphics driver supports the %@_swap_control extension.",
-					OOLITE_WINDOWS ? @"WGL_EXT" : @"[GLX_SGI/GLX_MESA]");
-		}
-		else  vSyncSet = YES;
-	}
-	
 	return vSyncSet;
 }
 
