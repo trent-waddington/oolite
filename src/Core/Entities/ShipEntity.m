@@ -325,40 +325,6 @@ static ShipEntity *doOctreesCollide(ShipEntity *prime, ShipEntity *other);
 	missile_load_time = fmax(0.0, [shipDict oo_doubleForKey:@"missile_load_time" defaultValue:0.0]); // no negative load times
 	missile_launch_time = [UNIVERSE getTime] + missile_load_time;
 	
-	// upgrades:
-	equipment_weight = 0; 
-	if ([shipDict oo_fuzzyBooleanForKey:@"has_ecm"])  [self addEquipmentItem:@"EQ_ECM" inContext:@"npc"];
-	if ([shipDict oo_fuzzyBooleanForKey:@"has_scoop"])  [self addEquipmentItem:@"EQ_FUEL_SCOOPS" inContext:@"npc"];
-	if ([shipDict oo_fuzzyBooleanForKey:@"has_escape_pod"])  [self addEquipmentItem:@"EQ_ESCAPE_POD" inContext:@"npc"];
-	if ([shipDict oo_fuzzyBooleanForKey:@"has_cloaking_device"])  [self addEquipmentItem:@"EQ_CLOAKING_DEVICE" inContext:@"npc"];
-	if ([shipDict oo_floatForKey:@"has_energy_bomb"] > 0)
-	{
-		/*	NOTE: has_energy_bomb actually refers to QC mines.
-			
-			max_missiles for NPCs is a newish addition, and ships have
-			traditionally not needed to reserve a slot for a Q-mine added this
-			way. If has_energy_bomb is possible, and max_missiles is not
-			explicit, we add an extra missile slot to compensate.
-			-- Ahruman 2011-03-25
-		*/
-		if ([shipDict oo_fuzzyBooleanForKey:@"has_energy_bomb"])
-		{
-			if (max_missiles == missiles && max_missiles < SHIPENTITY_MAX_MISSILES && [shipDict objectForKey:@"max_missiles"] == nil)
-			{
-				max_missiles++;
-			}
-			[self addEquipmentItem:@"EQ_QC_MINE" inContext:@"npc"];
-		}
-	}
-
-	if ([shipDict oo_fuzzyBooleanForKey:@"has_fuel_injection"])  [self addEquipmentItem:@"EQ_FUEL_INJECTION" inContext:@"npc"];
-
-#if USEMASC
-	if ([shipDict oo_fuzzyBooleanForKey:@"has_military_jammer"])  [self addEquipmentItem:@"EQ_MILITARY_JAMMER" inContext:@"npc"];
-	if ([shipDict oo_fuzzyBooleanForKey:@"has_military_scanner_filter"])  [self addEquipmentItem:@"EQ_MILITARY_SCANNER_FILTER" inContext:@"npc"];
-#endif
-	
-	
 	// can it be 'mined' for alloys?
 	canFragment = [shipDict oo_fuzzyBooleanForKey:@"fragment_chance" defaultValue:0.9];
 	isWreckage = NO;
@@ -528,11 +494,6 @@ static ShipEntity *doOctreesCollide(ShipEntity *prime, ShipEntity *other);
 
 	scan_description = [shipDict oo_stringForKey:@"scan_description" defaultValue:nil];
 
-	// FIXME: give NPCs shields instead.
-	
-	if ([shipDict oo_fuzzyBooleanForKey:@"has_shield_booster"])  [self addEquipmentItem:@"EQ_SHIELD_BOOSTER" inContext:@"npc"];
-	if ([shipDict oo_fuzzyBooleanForKey:@"has_shield_enhancer"])  [self addEquipmentItem:@"EQ_SHIELD_ENHANCER" inContext:@"npc"];
-	
 	// Start with full energy banks.
 	energy = maxEnergy;
 	weapon_temp				= 0.0f;
@@ -682,6 +643,48 @@ static ShipEntity *doOctreesCollide(ShipEntity *prime, ShipEntity *other);
 		}
 	}
 
+	/*
+	 * Moved from setUpFromDictionary due to #204, where adding equipment before the missile list was initialized caused a crash.
+	 *  - kanthoney 2016-08-19
+         */
+	// upgrades:
+	equipment_weight = 0; 
+	if ([shipDict oo_fuzzyBooleanForKey:@"has_ecm"])  [self addEquipmentItem:@"EQ_ECM" inContext:@"npc"];
+	if ([shipDict oo_fuzzyBooleanForKey:@"has_scoop"])  [self addEquipmentItem:@"EQ_FUEL_SCOOPS" inContext:@"npc"];
+	if ([shipDict oo_fuzzyBooleanForKey:@"has_escape_pod"])  [self addEquipmentItem:@"EQ_ESCAPE_POD" inContext:@"npc"];
+	if ([shipDict oo_fuzzyBooleanForKey:@"has_cloaking_device"])  [self addEquipmentItem:@"EQ_CLOAKING_DEVICE" inContext:@"npc"];
+	if ([shipDict oo_floatForKey:@"has_energy_bomb"] > 0)
+	{
+		/*	NOTE: has_energy_bomb actually refers to QC mines.
+			
+			max_missiles for NPCs is a newish addition, and ships have
+			traditionally not needed to reserve a slot for a Q-mine added this
+			way. If has_energy_bomb is possible, and max_missiles is not
+			explicit, we add an extra missile slot to compensate.
+			-- Ahruman 2011-03-25
+		*/
+		if ([shipDict oo_fuzzyBooleanForKey:@"has_energy_bomb"])
+		{
+			if (max_missiles == missiles && max_missiles < SHIPENTITY_MAX_MISSILES && [shipDict objectForKey:@"max_missiles"] == nil)
+			{
+				max_missiles++;
+			}
+			[self addEquipmentItem:@"EQ_QC_MINE" inContext:@"npc"];
+		}
+	}
+
+	if ([shipDict oo_fuzzyBooleanForKey:@"has_fuel_injection"])  [self addEquipmentItem:@"EQ_FUEL_INJECTION" inContext:@"npc"];
+
+#if USEMASC
+	if ([shipDict oo_fuzzyBooleanForKey:@"has_military_jammer"])  [self addEquipmentItem:@"EQ_MILITARY_JAMMER" inContext:@"npc"];
+	if ([shipDict oo_fuzzyBooleanForKey:@"has_military_scanner_filter"])  [self addEquipmentItem:@"EQ_MILITARY_SCANNER_FILTER" inContext:@"npc"];
+#endif
+
+	// FIXME: give NPCs shields instead.
+	
+	if ([shipDict oo_fuzzyBooleanForKey:@"has_shield_booster"])  [self addEquipmentItem:@"EQ_SHIELD_BOOSTER" inContext:@"npc"];
+	if ([shipDict oo_fuzzyBooleanForKey:@"has_shield_enhancer"])  [self addEquipmentItem:@"EQ_SHIELD_ENHANCER" inContext:@"npc"];
+	
 	// accuracy. Must come after scanClass, because we are using scanClass to determine if this is a missile.
 
 // missiles: range 0 to +10
