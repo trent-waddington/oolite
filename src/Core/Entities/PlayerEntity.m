@@ -5909,8 +5909,15 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 	if (weaponFired && cloaking_device_active && cloakPassive)
 	{
 		[self deactivateCloakingDevice];
-	}	
-	
+	}
+
+    if (weaponFired)
+    {
+        Entity *victim = [self shipHitByLaser];
+        if (victim)
+            [self addTarget:victim];
+    }
+
 	return weaponFired;
 }
 
@@ -11730,6 +11737,7 @@ static NSString *last_outfitting_key=nil;
 {
 	if ([self status] != STATUS_IN_FLIGHT && [self status] != STATUS_WITCHSPACE_COUNTDOWN)  return;
 	if (targetEntity == self)  return;
+    if ([self primaryTarget] == targetEntity) return;
 	
 	[super addTarget:targetEntity];
 	
@@ -11769,7 +11777,7 @@ static NSString *last_outfitting_key=nil;
 	if (ident_engaged)
 	{
 		[self playIdentLockedOn];
-		[self printIdentLockedOnForMissile:NO];
+		//[self printIdentLockedOnForMissile:NO];
 	}
 	else if ([targetEntity isShip] && [self weaponsOnline]) // Only let missiles target-lock onto ships
 	{
@@ -11778,13 +11786,13 @@ static NSString *last_outfitting_key=nil;
 			missile_status = MISSILE_STATUS_TARGET_LOCKED;
 			[missile_entity[activeMissile] addTarget:targetEntity];
 			[self playMissileLockedOn];
-			[self printIdentLockedOnForMissile:YES];
+			//[self printIdentLockedOnForMissile:YES];
 		}
 		else // It's a mine or something
 		{
 			missile_status = MISSILE_STATUS_ARMED;
 			[self playIdentLockedOn];
-			[self printIdentLockedOnForMissile:NO];
+			//[self printIdentLockedOnForMissile:NO];
 		}
 	}
 }

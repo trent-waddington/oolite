@@ -3,8 +3,8 @@
 	key_roll_right				= 252;		// right arrow
 	key_pitch_forward			= 255;		// up arrow
 	key_pitch_back				= 254;		// down arrow
-	key_yaw_left				= ",";
-	key_yaw_right				= ".";
+	key_yaw_left				= "a";
+	key_yaw_right				= "d";
 
 	key_view_forward			= "1";
 	key_view_aft				= "2";
@@ -32,19 +32,19 @@
 	key_decrease_speed			= "s";
 	key_inject_fuel				= "i";
 
-	key_fire_lasers				= "a";
-	key_weapons_online_toggle	= "_";
-	key_launch_missile			= "m";
-	key_next_missile			= "y";
+	key_fire_lasers				= "A";
+	key_weapons_online_toggle	= "W";
+	key_launch_missile			= "q";
+	key_next_missile			= "r";
 	key_ecm						= "e";
 
 	key_prime_equipment			= "N";
 	key_activate_equipment		= "n";
 	key_mode_equipment			= "b";
 	key_fastactivate_equipment_a = "0";
-	key_fastactivate_equipment_b = "\t";	// tab
+	key_fastactivate_equipment_b = "/";
 
-	key_target_incoming_missile	= "T";
+	key_target_incoming_missile	= "t";
 	key_target_missile			= "t";
 	key_untarget_missile		= "u";
 	key_ident_system			= "r";
@@ -58,7 +58,7 @@
 
 	key_galactic_hyperspace		= "g";
 	key_hyperspace				= "h";
-	key_jumpdrive				= "j";
+	key_jumpdrive				= "\t";
 
 	key_dump_cargo				= "D";
 	key_rotate_cargo			= "R";
@@ -76,7 +76,7 @@
 
 	key_pausebutton				= "p";
 	key_show_fps				= "F";
-	key_mouse_control			= "M";
+	key_mouse_control			= " ";
 	key_hud_toggle				= "o";
 
 	key_comms_log				= "`";

@@ -5560,6 +5560,7 @@ static BOOL MaintainLinkedLists(Universe *uni)
 	HPVector			p0 = [srcEntity position];
 	Quaternion		q1 = [srcEntity normalOrientation];
 	ShipEntity		*parent = [srcEntity parentEntity];
+    BOOL            isPlayer = [srcEntity isPlayer];
 	
 	if (parent)
 	{
@@ -5568,7 +5569,11 @@ static BOOL MaintainLinkedLists(Universe *uni)
 		HPVector midfrontplane = make_HPvector(0.5 * (bbox.max.x + bbox.min.x), 0.5 * (bbox.max.y + bbox.min.y), bbox.max.z);
 		p0 = [srcEntity absolutePositionForSubentityOffset:midfrontplane];
 		q1 = [parent orientation];
-		if ([parent isPlayer])  q1.w = -q1.w;
+		if ([parent isPlayer])
+        {
+            q1.w = -q1.w;
+            isPlayer = YES;
+        }
 	}
 	
 	double			nearest = [srcEntity weaponRange];
@@ -5590,6 +5595,12 @@ static BOOL MaintainLinkedLists(Universe *uni)
 	Vector u1, f1, r1;
 	basis_vectors_from_quaternion(q1, &r1, &u1, &f1);
 	p0 = HPvector_add(p0, vectorToHPVector(OOVectorMultiplyMatrix(offset, OOMatrixFromBasisVectors(r1, u1, f1))));
+
+    if (isPlayer)
+    {
+        [gameView applyMouseToQuaternion: &q1];
+        basis_vectors_from_quaternion(q1, &r1, &u1, &f1);
+    }
 	
 	switch (direction)
 	{
@@ -5681,8 +5692,12 @@ static BOOL MaintainLinkedLists(Universe *uni)
 	Vector u1, f1, r1;
 	basis_vectors_from_quaternion(q1, &r1, &u1, &f1);
 	Vector offset = [player weaponViewOffset];
+    //Vector offset = make_vector(0,0,0);
 	
 	HPVector p1 = HPvector_add([player position], vectorToHPVector(OOVectorMultiplyMatrix(offset, OOMatrixFromBasisVectors(r1, u1, f1))));
+
+    [gameView applyMouseToQuaternion: &q1];
+	basis_vectors_from_quaternion(q1, &r1, &u1, &f1);
 	
 	// Note: deliberately tied to view direction, not weapon facing. All custom views count as forward for targeting.
 	switch (viewDirection)

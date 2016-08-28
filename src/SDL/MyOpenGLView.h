@@ -47,6 +47,7 @@ MA 02110-1301, USA.
 
 #define NUM_KEYS			320
 #define MOUSE_DOUBLE_CLICK_INTERVAL	0.40
+#define MOUSE_AWHILE_INTERVAL	0.15
 #define OOMOUSEWHEEL_EVENTS_DELAY_INTERVAL	0.05
 
 #define SNAPSHOTS_PNG_FORMAT		1
@@ -78,6 +79,7 @@ enum GameViewKeys
 	gvDeleteKey,
 	gvPageUpKey,
 	gvPageDownKey, // 308
+	gvMouseRightButton,
 	gvNumberKey0 = 48,
 	gvNumberKey1,
 	gvNumberKey2,
@@ -142,8 +144,9 @@ extern int debug;
 	BOOL				mouseWarped;
 
 	NSTimeInterval		timeIntervalAtLastClick;
+	NSTimeInterval		timeIntervalAtLeftDown;
 	NSTimeInterval		timeSinceLastMouseWheel;
-	BOOL				doubleClick;
+	BOOL				doubleClick, singleClick;
 
 	NSMutableString		*typedString;
 
@@ -211,6 +214,8 @@ extern int debug;
 - (GLfloat) x_offset;
 - (GLfloat) y_offset;
 
+- (void) applyMouseToQuaternion:(Quaternion *) q;
+
 - (GameController *) gameController;
 - (void) setGameController:(GameController *) controller;
 
@@ -275,6 +280,8 @@ extern int debug;
 - (BOOL) isCommandDown;
 - (BOOL) isShiftDown;
 - (BOOL) isCapsLockOn;
+- (BOOL) isLeftButtonDownAWhile;
+- (BOOL) wasLeftButtonClicked;
 - (int) numKeys;
 - (int) mouseWheelState;
 

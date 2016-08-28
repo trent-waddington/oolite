@@ -242,6 +242,7 @@ OOLITE_GRAPHICS_MATERIAL_FILES = \
 
 OOLITE_GRAPHICS_MISC_FILES = \
     OOCrosshairs.m \
+    OOPointer.m \
     OODebugGLDrawing.m \
     OOGraphicsResetManager.m \
     OOOpenGL.m \

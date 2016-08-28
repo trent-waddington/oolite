@@ -42,6 +42,7 @@ MA 02110-1301, USA.
 #import "OOCollectionExtractors.h"
 #import "OOEncodingConverter.h"
 #import "OOCrosshairs.h"
+#import "OOPointer.h"
 #import "OOConstToString.h"
 #import "OOStringParsing.h"
 #import "OOJoystickManager.h"
@@ -313,6 +314,10 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
 	_crosshairColor = [[OOColor colorWithDescription:crosshairColor] retain];
 	_crosshairScale = [hudinfo oo_floatForKey:@"crosshair_scale" defaultValue:32.0f];
 	_crosshairWidth = [hudinfo oo_floatForKey:@"crosshair_width" defaultValue:1.5f];
+
+	id pointerColor = [hudinfo oo_objectForKey:@"pointer_color" defaultValue:@"greenColor"];
+	_pointerColor = [[OOColor colorWithDescription:pointerColor] retain];
+	_pointerScale = [hudinfo oo_floatForKey:@"pointer_scale" defaultValue:32.0f];
 	
 	nonlinear_scanner = [hudinfo oo_boolForKey:@"scanner_non_linear" defaultValue:NO];
 	scanner_ultra_zoom = [hudinfo oo_boolForKey:@"scanner_ultra_zoom" defaultValue:NO];
@@ -881,6 +886,7 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
 	if (weapon != _lastWeaponType || overallAlpha != _lastOverallAlpha || weaponsOnline != _lastWeaponsOnline)
 	{
 		DESTROY(_crosshairs);
+		DESTROY(_pointer);
 	}
 	
 	if (_crosshairs == nil)
@@ -894,12 +900,16 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
 													 scale:_crosshairScale
 													 color:_crosshairColor
 											  overallAlpha:useAlpha];
+		_pointer = [[OOPointer alloc] initWithScale:_pointerScale
+										      color:_pointerColor
+											  overallAlpha:useAlpha];
 		_lastWeaponType = weapon;
 		_lastOverallAlpha = useAlpha;
 		_lastWeaponsOnline = weaponsOnline;
 	}
 	
 	[_crosshairs render];
+	[_pointer render];
 }
 
 
@@ -913,7 +923,9 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
 {
 	// force crosshair redraw
 	[_crosshairs release];
+	[_pointer release];
 	_crosshairs = nil;
+	_pointer = nil;
 
 	[_crosshairOverrides release];
 	_crosshairOverrides = [[ResourceManager dictionaryFromFilesNamed:newDefinition
@@ -976,14 +988,13 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
 	return result;
 }
 
-
 - (void) drawLegend:(NSDictionary *)info
 {
 	// check if equipment is required
 	NSString *equipmentRequired = [info oo_stringForKey:EQUIPMENT_REQUIRED_KEY];
 	if (equipmentRequired != nil && ![PLAYER hasEquipmentItemProviding:equipmentRequired])
 	{
-		return;
+		//return;
 	}
 
 	// check alert condition
@@ -1058,7 +1069,7 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
 	
 	if (equipment != nil && ![PLAYER hasEquipmentItemProviding:equipment])
 	{
-		return;
+		//return;
 	}
 
 	// check alert condition
@@ -2574,8 +2585,10 @@ static OOPolygonSprite *IconForMissileRole(NSString *role)
 	
 	BOOL weaponsOnline = [PLAYER weaponsOnline];
 	if (!weaponsOnline)  alpha *= 0.2f;	// darken missile display if weapons are offline
-	
-	if (![PLAYER dialIdentEngaged])
+
+    BOOL separateIdent = YES;
+
+	if (![PLAYER dialIdentEngaged] || separateIdent)
 	{
 		OOMissileStatus status = [PLAYER dialMissileStatus];
 		NSUInteger i, n_mis = [PLAYER dialMaxMissiles];
@@ -2622,7 +2635,50 @@ static OOPolygonSprite *IconForMissileRole(NSString *role)
 		GLColorWithOverallAlpha(green_color, alpha);
 		OODrawString([PLAYER dialTargetName], x + sp, y - 1, z1, NSMakeSize(siz.width, siz.height));
 	}
-	
+
+    if (separateIdent)
+    {
+		x -= siz.width;
+		y -= siz.height * 0.75;
+		siz.width *= 0.80;
+		sp *= 5.5;
+        alpha = overallAlpha * cached.alpha;
+		GLColorWithOverallAlpha(green_color, alpha);
+        NSString *text = [PLAYER dialTargetName];
+        x += sp;
+        OODrawString(text, x, y - 5, z1, NSMakeSize(siz.width, siz.height));
+
+        Entity  *target_entity = [PLAYER primaryTarget];
+        if (target_entity)
+        {
+            y -= siz.height * 0.3;
+            GLfloat w = OORectFromString(text, 0, 0, NSMakeSize(siz.width, siz.height)).size.width;
+            GLfloat h = 2.5;
+
+            GLColorWithOverallAlpha(lightgray_color, alpha);
+            OOGLBEGIN(GL_QUADS);
+                glVertex3i(x,     y,     z1);
+                glVertex3i(x + w, y,     z1);
+                glVertex3i(x + w, y - h, z1);
+                glVertex3i(x,     y - h, z1);
+            OOGLEND();
+
+            GLfloat maxEnergy = [target_entity maxEnergy];
+            GLfloat energy = [target_entity energy];
+            GLfloat len = w * energy / maxEnergy;
+
+            if (energy < maxEnergy / 3)
+                GLColorWithOverallAlpha(red_color, alpha);
+            else
+                GLColorWithOverallAlpha(green_color, alpha);
+            OOGLBEGIN(GL_QUADS);
+                glVertex3i(x,       y,     z1);
+                glVertex3i(x + len, y,     z1);
+                glVertex3i(x + len, y - h, z1);
+                glVertex3i(x,       y - h, z1);
+            OOGLEND();
+        }
+    }
 }
 
 
@@ -3577,7 +3633,40 @@ static void hudDrawReticleOnTarget(Entity *target, PlayerEntity *player1, GLfloa
 		glVertex2f(-rs0,-rs2);	glVertex2f(-rs0,-rs0);
 		glVertex2f(-rs0,-rs0);	glVertex2f(-rs2,-rs0);
 	OOGLEND();
-	
+
+    BOOL showEnergy = YES;
+    if (showEnergy)
+    {
+        GLfloat rs3 = rs0 * 0.8;
+        GLfloat x = -rs3;
+        GLfloat y = -rs3;
+        GLfloat w = rs3 * 2;
+        GLfloat h = rs3 / 5;
+
+        GLColorWithOverallAlpha(lightgray_color, alpha);
+        OOGLBEGIN(GL_QUADS);
+            glVertex2f(x,     y);
+            glVertex2f(x + w, y);
+            glVertex2f(x + w, y + h);
+            glVertex2f(x,     y + h);
+        OOGLEND();
+
+        GLfloat maxEnergy = [target maxEnergy];
+        GLfloat energy = [target energy];
+        GLfloat len = w * energy / maxEnergy;
+
+        if (energy < maxEnergy / 3)
+            GLColorWithOverallAlpha(red_color, alpha);
+        else
+            GLColorWithOverallAlpha(green_color, alpha);
+        OOGLBEGIN(GL_QUADS);
+            glVertex2f(x,       y);
+            glVertex2f(x + len, y);
+            glVertex2f(x + len, y + h);
+            glVertex2f(x,       y + h);
+        OOGLEND();
+    }
+
 	if (showText)
 	{
 		// add text for reticle here
@@ -3590,7 +3679,7 @@ static void hudDrawReticleOnTarget(Entity *target, PlayerEntity *player1, GLfloa
 		// no need to set colour here
 		OODrawString([player1 dialTargetName], rs0, 0.5 * rs2, 0, textsize);
 		OODrawString(infoline, rs0, 0.5 * rs2 - line_height, 0, textsize);
-	
+
 		if ([target isWormhole])
 		{
 			// Note: No break statements in the following switch() since every case

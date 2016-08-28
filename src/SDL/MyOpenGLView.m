@@ -329,7 +329,7 @@ MA 02110-1301, USA.
 	allowingStringInput = gvStringInputNo;
 	isAlphabetKeyDown = NO;
 
-	timeIntervalAtLastClick = timeSinceLastMouseWheel = [NSDate timeIntervalSinceReferenceDate];
+	timeIntervalAtLastClick = timeIntervalAtLeftDown = timeSinceLastMouseWheel = [NSDate timeIntervalSinceReferenceDate];
 	
 	_mouseWheelState = gvMouseWheelNeutral;
 
@@ -416,7 +416,7 @@ MA 02110-1301, USA.
 - (void) autoShowMouse
 {
 	//don't touch the 'please wait...' cursor.
-	if (fullScreen)
+	if (fullScreen || 1)
 	{
 		if (SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE)
 			SDL_ShowCursor(SDL_DISABLE);
@@ -501,6 +501,20 @@ MA 02110-1301, USA.
 	return y_offset;
 }
 
+- (void) applyMouseToQuaternion:(Quaternion *) q
+{
+    int mx, my;
+    SDL_GetMouseState(&mx, &my);
+    GLfloat x = ((GLfloat)mx - x_offset);
+    GLfloat y = -((GLfloat)my - y_offset);
+    GLfloat ax = -atan(x / display_z);
+    GLfloat ay = atan(y / display_z);
+    Vector u1, f1, r1;
+    basis_vectors_from_quaternion(*q, &r1, &u1, &f1);
+    quaternion_rotate_about_axis(q, u1, ax);
+    quaternion_rotate_about_axis(q, r1, ay);
+    basis_vectors_from_quaternion(*q, &r1, &u1, &f1);
+}
 
 - (GameController *) gameController
 {
@@ -1455,7 +1469,9 @@ MA 02110-1301, USA.
 {
 	keys[gvMouseDoubleClick] = NO;
 	keys[gvMouseLeftButton] = NO;
+	keys[gvMouseRightButton] = NO;
 	doubleClick = NO;
+    singleClick = NO;
 }
 
 
@@ -1514,6 +1530,24 @@ MA 02110-1301, USA.
 	return keys[key];
 }
 
+- (BOOL) isLeftButtonDownAWhile
+{
+    if ([self isDown: gvMouseLeftButton])
+    {
+        NSTimeInterval timeNow = [NSDate timeIntervalSinceReferenceDate];
+        if (timeNow - timeIntervalAtLeftDown > MOUSE_AWHILE_INTERVAL)
+            return YES;
+    }
+
+    return NO;
+}
+
+- (BOOL) wasLeftButtonClicked
+{
+    BOOL clicked = singleClick;
+    singleClick = NO;
+    return clicked;
+}
 
 - (BOOL) isOptDown
 {
@@ -1625,16 +1659,10 @@ MA 02110-1301, USA.
 				{
 					case SDL_BUTTON_LEFT:
 						keys[gvMouseLeftButton] = YES;
+                        timeIntervalAtLeftDown = timeNow;
 						break;
 					case SDL_BUTTON_RIGHT:
-						// Cocoa version does this in the GameController
-						/*
-						 The mouseWarped variable is quite important as far as mouse control is concerned. When we
-						 reset the virtual joystick (mouse) coordinates, we need to send a WarpMouse call because we
-						 must recenter the pointer physically on screen. This goes together with a mouse motion event,
-						 so we use mouseWarped to simply ignore handling of motion events in this case. - Nikos 20110721
-						*/
-						[self resetMouse]; // Will set mouseWarped to YES
+						keys[gvMouseRightButton] = YES;
 						break;
 					// mousewheel stuff
 					case SDL_BUTTON_WHEELUP:
@@ -1657,8 +1685,14 @@ MA 02110-1301, USA.
 						doubleClick = (timeBetweenClicks < MOUSE_DOUBLE_CLICK_INTERVAL);	// One fifth of a second
 						keys[gvMouseDoubleClick] = doubleClick;
 					}
+                    if (!singleClick)
+                        singleClick = (timeNow - timeIntervalAtLeftDown) < MOUSE_AWHILE_INTERVAL;
 					keys[gvMouseLeftButton] = NO;
 				}
+                else if (mbtn_event->button == SDL_BUTTON_RIGHT)
+                {
+					keys[gvMouseRightButton] = NO;
+                }
 				/* 
 				   Mousewheel handling - just note time since last use here and mark as inactive,
 				   if needed, at the end of this method. Note that the mousewheel button up event is 

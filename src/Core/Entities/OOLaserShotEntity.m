@@ -79,6 +79,12 @@ static OOTexture *sShotTexture2 = nil;
 	Vector q_up = vector_up_from_quaternion(q);
 	Quaternion q0 = [ship normalOrientation];
 	velocity = vector_multiply_scalar(vector_forward_from_quaternion(q0), [ship flightSpeed]);
+
+    if ([ship isPlayer])
+    {
+        [[UNIVERSE gameView] applyMouseToQuaternion: &q];
+        q_up = vector_up_from_quaternion(q);
+    }
 	
 	switch (direction)
 	{

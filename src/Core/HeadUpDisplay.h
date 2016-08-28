@@ -32,7 +32,7 @@ MA 02110-1301, USA.
 #import "MyOpenGLView.h"
 #import "ShipEntity.h"
 
-@class OOCrosshairs, OOColor;
+@class OOCrosshairs, OOPointer, OOColor;
 
 @protocol OOHUDBeaconIcon;
 
@@ -264,6 +264,7 @@ MA 02110-1301, USA.
 	
 	// Crosshairs
 	OOCrosshairs		*_crosshairs;
+	OOPointer		    *_pointer;
 	OOWeaponType		_lastWeaponType;
 	GLfloat				_lastOverallAlpha;
 	BOOL				_lastWeaponsOnline;
@@ -272,6 +273,8 @@ MA 02110-1301, USA.
 	GLfloat				_crosshairScale;
 	GLfloat				_crosshairWidth;
 	NSString			*crosshairDefinition;
+	OOColor				*_pointerColor;
+	GLfloat				_pointerScale;
 	BOOL				_compassActive;
 	
 	// Nonlinear scanner

@@ -81,9 +81,13 @@ static BOOL				fastactivate_a_pressed;
 static BOOL				fastactivate_b_pressed;
 static BOOL				next_missile_pressed;
 static BOOL				fire_missile_pressed;
+#if 0
 static BOOL				target_missile_pressed;
+#endif
 static BOOL				target_incoming_missile_pressed;
+#if 0
 static BOOL				ident_pressed;
+#endif
 static BOOL				safety_pressed;
 static BOOL				rotateCargo_pressed;
 static BOOL				autopilot_key_pressed;
@@ -140,6 +144,7 @@ static BOOL				next_planet_info_pressed;
 static BOOL				previous_planet_info_pressed;
 static BOOL				home_info_pressed;
 static BOOL				target_info_pressed;
+static BOOL             esc_pressed;
 static NSPoint				mouse_click_position;
 static NSPoint				centre_at_mouse_click;
 
@@ -152,7 +157,6 @@ static double			saved_script_time;
 static int				saved_gui_screen;
 static OOWeaponFacing	saved_weapon_facing;
 static int 				pressedArrow = 0;
-static BOOL				mouse_x_axis_map_to_yaw = NO;
 static NSTimeInterval	time_last_frame;
 
 
@@ -243,8 +247,8 @@ static NSTimeInterval	time_last_frame;
 	LOAD_KEY_SETTING(key_roll_right,			gvArrowKeyRight		);
 	LOAD_KEY_SETTING(key_pitch_forward,			gvArrowKeyUp		);
 	LOAD_KEY_SETTING(key_pitch_back,			gvArrowKeyDown		);
-	LOAD_KEY_SETTING(key_yaw_left,				','			);
-	LOAD_KEY_SETTING(key_yaw_right,				'.'			);
+	LOAD_KEY_SETTING(key_yaw_left,				'a'			);
+	LOAD_KEY_SETTING(key_yaw_right,				'd'			);
 
 	LOAD_KEY_SETTING(key_view_forward,			'1'			);
 	LOAD_KEY_SETTING(key_view_aft,				'2'			);
@@ -266,9 +270,9 @@ static NSTimeInterval	time_last_frame;
 	LOAD_KEY_SETTING(key_inject_fuel,			'i'			);
 	
 	LOAD_KEY_SETTING(key_fire_lasers,			'a'			);
-	LOAD_KEY_SETTING(key_weapons_online_toggle,	'_'			);
-	LOAD_KEY_SETTING(key_launch_missile,		'm'			);
-	LOAD_KEY_SETTING(key_next_missile,			'y'			);
+	LOAD_KEY_SETTING(key_weapons_online_toggle,	'W'			);
+	LOAD_KEY_SETTING(key_launch_missile,		'q'			);
+	LOAD_KEY_SETTING(key_next_missile,			'r'			);
 	LOAD_KEY_SETTING(key_ecm,					'e'			);
 	
 	LOAD_KEY_SETTING(key_prime_equipment,		'N'			);
@@ -279,19 +283,19 @@ static NSTimeInterval	time_last_frame;
 	
 	LOAD_KEY_SETTING(key_target_missile,		't'			);
 	LOAD_KEY_SETTING(key_untarget_missile,		'u'			);
-	LOAD_KEY_SETTING(key_target_incoming_missile,	'T'		);
+	LOAD_KEY_SETTING(key_target_incoming_missile,	't'		);
 	LOAD_KEY_SETTING(key_ident_system,			'r'			);
 	
 	LOAD_KEY_SETTING(key_scanner_zoom,			'z'			);
 	LOAD_KEY_SETTING(key_scanner_unzoom,		'Z'			);
 	
-	LOAD_KEY_SETTING(key_launch_escapepod,		27	/* esc */ );
+	LOAD_KEY_SETTING(key_launch_escapepod,		'\b'        );
 	
 	LOAD_KEY_SETTING(key_galactic_hyperspace,	'g'			);
 	LOAD_KEY_SETTING(key_hyperspace,			'h'			);
-	LOAD_KEY_SETTING(key_jumpdrive,				'j'			);
+	LOAD_KEY_SETTING(key_jumpdrive,				'\t' );
 	
-	LOAD_KEY_SETTING(key_dump_cargo,			'd'			);
+	LOAD_KEY_SETTING(key_dump_cargo,			'D'			);
 	LOAD_KEY_SETTING(key_rotate_cargo,			'R'			);
 	
 	LOAD_KEY_SETTING(key_autopilot,				'c'			);
@@ -307,7 +311,7 @@ static NSTimeInterval	time_last_frame;
 	
 	LOAD_KEY_SETTING(key_pausebutton,			'p'			);
 	LOAD_KEY_SETTING(key_show_fps,				'F'			);
-	LOAD_KEY_SETTING(key_mouse_control,			'M'			);
+	LOAD_KEY_SETTING(key_mouse_control,			' '			);
 	LOAD_KEY_SETTING(key_hud_toggle,			'o'			);
 	
 	LOAD_KEY_SETTING(key_comms_log,				'`'			);
@@ -624,11 +628,6 @@ static NSTimeInterval	time_last_frame;
 			{
 				[gameView clearCommandF];
 				[gameController exitFullScreenMode];
-				if (mouse_control_on)
-				{
-					[UNIVERSE addMessage:DESC(@"mouse-off") forCount:3.0];
-					mouse_control_on = NO;
-				}
 			}
 			
 			if ([gameView isCommandQDown])
@@ -705,49 +704,32 @@ static NSTimeInterval	time_last_frame;
 		{
 			f_key_pressed = NO;
 		}
-		
+
 		// Mouse control
-		BOOL allowMouseControl;
-	#if OO_DEBUG
-		allowMouseControl = YES;
-	#else
+		BOOL allowMouseControl = YES;
+#if 0
 		allowMouseControl = [gameController inFullScreenMode] ||
 					[[NSUserDefaults standardUserDefaults] boolForKey:@"mouse-control-in-windowed-mode"];
-	#endif
-		
+#endif
+
 		if (allowMouseControl)
 		{
 			exceptionContext = @"mouse control";
-			if (!onTextEntryScreen && [gameView isDown:key_mouse_control])   //  'M' key
+			if (!onTextEntryScreen && [gameView isDown:key_mouse_control])
 			{
 				if (!m_key_pressed)
 				{
 					mouse_control_on = !mouse_control_on;
+#if 0
 					if (mouse_control_on)
 					{
 						[UNIVERSE addMessage:DESC(@"mouse-on") forCount:3.0];
-						/*	Ensure the keyboard pitch override (intended to lock
-						 out the joystick if the player runs to the keyboard)
-						 is reset */
-					#if OOLITE_GNUSTEP
-						[gameView resetMouse];
-						if ([[NSUserDefaults standardUserDefaults] boolForKey:@"grab-mouse-on-mouse-control"])
-						{
-							[gameView grabMouseInsideGameWindow:YES];
-						}
-					#endif
-						mouse_x_axis_map_to_yaw = [gameView isCtrlDown];
-						keyboardRollOverride = mouse_x_axis_map_to_yaw;   // Getafix: set keyboardRollOverride to TRUE only if yaw is mapped to mouse x-axis
-						keyboardPitchOverride = NO;
-						keyboardYawOverride = !keyboardRollOverride;
 					}
 					else
 					{
 						[UNIVERSE addMessage:DESC(@"mouse-off") forCount:3.0];
-                    #if OOLITE_GNUSTEP
-						[gameView grabMouseInsideGameWindow:NO];
-                    #endif
 					}
+#endif
 				}
 				if (OOMouseInteractionModeIsFlightMode([gameController mouseInteractionMode]))
 				{
@@ -765,11 +747,8 @@ static NSTimeInterval	time_last_frame;
 			if (mouse_control_on)
 			{
 				mouse_control_on = NO;
-				[UNIVERSE addMessage:DESC(@"mouse-off") forCount:3.0];
-            #if OOLITE_GNUSTEP
-				[gameView grabMouseInsideGameWindow:NO];
-            #endif
-				
+				//[UNIVERSE addMessage:DESC(@"mouse-off") forCount:3.0];
+
 				if (OOMouseInteractionModeIsFlightMode([gameController mouseInteractionMode]))
 				{
 					[gameController setMouseInteractionModeForFlight];
@@ -972,7 +951,7 @@ static NSTimeInterval	time_last_frame;
 				
 				exceptionContext = @"shoot";
 				//  shoot 'a'
-				if ((([gameView isDown:key_fire_lasers])||((mouse_control_on)&&([gameView isDown:gvMouseLeftButton]) && !([UNIVERSE viewDirection] && [gameView isCapsLockOn]))||joyButtonState[BUTTON_FIRE])&&(shot_time > weapon_recharge_rate))
+				if ((([gameView isDown:key_fire_lasers]) || joyButtonState[BUTTON_FIRE] || [gameView isDown:gvMouseRightButton]) && (shot_time > weapon_recharge_rate))
 				{
 					if ([self fireMainWeapon])
 					{
@@ -1055,6 +1034,7 @@ static NSTimeInterval	time_last_frame;
 				else  previous_target_pressed = NO;
 				
 				exceptionContext = @"ident R";
+#if 0
 				//  shoot 'r'   // switch on ident system
 				if ([gameView isDown:key_ident_system] || joyButtonState[BUTTON_ID])
 				{
@@ -1066,7 +1046,22 @@ static NSTimeInterval	time_last_frame;
 					ident_pressed = YES;
 				}
 				else  ident_pressed = NO;
-				
+#endif
+
+                if ([gameView wasLeftButtonClicked])
+                {
+                    Entity *target = [UNIVERSE firstEntityTargetedByPlayer];
+                    if ([self isValidTarget:target])
+                    {
+                        [self addTarget:target];
+                    }
+                    else
+                    {
+                        [self noteLostTarget];
+                        [self safeAllMissiles];
+                    }
+                }
+
 				exceptionContext = @"prime equipment";
 				// prime equipment 'N' - selects equipment to use with keypress
 				if ([gameView isDown:key_prime_equipment] || joyButtonState[BUTTON_PRIMEEQUIPMENT])
@@ -1170,6 +1165,7 @@ static NSTimeInterval	time_last_frame;
 				}
 				else  target_incoming_missile_pressed = NO;
 				
+#if 0
 				exceptionContext = @"missile T";
 				//  shoot 't'   // switch on missile targeting
 				if (([gameView isDown:key_target_missile] || joyButtonState[BUTTON_ARMMISSILE])&&(missile_entity[activeMissile]))
@@ -1182,6 +1178,7 @@ static NSTimeInterval	time_last_frame;
 					target_missile_pressed = YES;
 				}
 				else  target_missile_pressed = NO;
+#endif
 				
 				exceptionContext = @"missile U";
 				//  shoot 'u'   // disarm missile targeting
@@ -3655,15 +3652,7 @@ static NSTimeInterval	time_last_frame;
 	 Mouse control on takes precidence over joysticks.
 	 We have to assume the player has a reason for switching mouse
 	 control on if they have a joystick - let them do it. */
-	if (mouse_control_on)
-	{
-		virtualStick=[gameView virtualJoystickPosition];
-		double sensitivity = 2.0;
-		virtualStick.x *= sensitivity;
-		virtualStick.y *= sensitivity;
-		reqYaw = virtualStick.x;
-	}
-	else if (numSticks > 0)
+	if (numSticks > 0)
 	{
 		virtualStick = [stickHandler rollPitchAxis];
 		// handle roll separately (fix for BUG #17490)
@@ -3715,29 +3704,46 @@ static NSTimeInterval	time_last_frame;
 	
 	rolling = NO;
 	// if we have yaw on the mouse x-axis, then allow using the keyboard roll keys
-	if (!mouse_control_on || (mouse_control_on && mouse_x_axis_map_to_yaw))
-	{
-		if ([gameView isDown:key_roll_left] && [gameView isDown:key_roll_right])
-		{
-			keyboardRollOverride = YES;
-			flightRoll = 0.0;
-		}
-		else if ([gameView isDown:key_roll_left] && !capsLockCustomView)
-		{
-			keyboardRollOverride=YES;
-			if (flightRoll > 0.0)  flightRoll = 0.0;
-			[self decrease_flight_roll:isCtrlDown ? flightArrowKeyPrecisionFactor*roll_dampner*roll_delta : delta_t*roll_delta];
-			rolling = YES;
-		}
-		else if ([gameView isDown:key_roll_right] && !capsLockCustomView)
-		{
-			keyboardRollOverride=YES;
-			if (flightRoll < 0.0)  flightRoll = 0.0;
-			[self increase_flight_roll:isCtrlDown ? flightArrowKeyPrecisionFactor*roll_dampner*roll_delta : delta_t*roll_delta];
-			rolling = YES;
-		}
-	}
-	if(((mouse_control_on && !mouse_x_axis_map_to_yaw) || numSticks) && !keyboardRollOverride && !capsLockCustomView)
+    if ([gameView isDown:key_roll_left] && [gameView isDown:key_roll_right])
+    {
+        keyboardRollOverride = YES;
+        flightRoll = 0.0;
+    }
+    else if ([gameView isDown:key_roll_left] && !capsLockCustomView)
+    {
+        keyboardRollOverride=YES;
+        if (flightRoll > 0.0)  flightRoll = 0.0;
+        [self decrease_flight_roll:isCtrlDown ? flightArrowKeyPrecisionFactor*roll_dampner*roll_delta : delta_t*roll_delta];
+        rolling = YES;
+    }
+    else if ([gameView isDown:key_roll_right] && !capsLockCustomView)
+    {
+        keyboardRollOverride=YES;
+        if (flightRoll < 0.0)  flightRoll = 0.0;
+        [self increase_flight_roll:isCtrlDown ? flightArrowKeyPrecisionFactor*roll_dampner*roll_delta : delta_t*roll_delta];
+        rolling = YES;
+    }
+    else if (([gameView isLeftButtonDownAWhile] || mouse_control_on) && !capsLockCustomView)
+    {
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+        GLfloat x_offset = [[UNIVERSE gameView] x_offset];
+        if (mx < x_offset - x_offset / 10)
+        {
+            keyboardYawOverride=YES;
+            if (flightYaw < 0.0)  flightYaw = 0.0;
+            [self increase_flight_yaw:isCtrlDown ? flightArrowKeyPrecisionFactor*yaw_dampner*yaw_delta : delta_t*yaw_delta];
+            yawing = YES;
+        }
+        else if (mx > x_offset + x_offset / 10)
+        {
+            keyboardYawOverride=YES;
+            if (flightYaw > 0.0)  flightYaw = 0.0;
+            [self decrease_flight_yaw:isCtrlDown ? flightArrowKeyPrecisionFactor*yaw_dampner*yaw_delta : delta_t*yaw_delta];
+            yawing = YES;
+        }
+    }
+	if(numSticks && !keyboardRollOverride && !capsLockCustomView)
 	{
 		stick_roll = max_flight_roll * virtualStick.x;
 		if (flightRoll < stick_roll)
@@ -3769,30 +3775,46 @@ static NSTimeInterval	time_last_frame;
 	}
 	
 	pitching = NO;
-	// we don't care about pitch keyboard overrides when mouse control is on, only when using joystick
-	if (!mouse_control_on)
-	{
-		if ([gameView isDown:key_pitch_back] && [gameView isDown:key_pitch_forward])
-		{
-			keyboardPitchOverride=YES;
-			flightPitch = 0.0;
-		}
-		else if ([gameView isDown:key_pitch_back] && !capsLockCustomView)
-		{
-			keyboardPitchOverride=YES;
-			if (flightPitch < 0.0)  flightPitch = 0.0;
-			[self increase_flight_pitch:isCtrlDown ? flightArrowKeyPrecisionFactor*pitch_dampner*pitch_delta : delta_t*pitch_delta];
-			pitching = YES;
-		}
-		else if ([gameView isDown:key_pitch_forward] && !capsLockCustomView)
-		{
-			keyboardPitchOverride=YES;
-			if (flightPitch > 0.0)  flightPitch = 0.0;
-			[self decrease_flight_pitch:isCtrlDown ? flightArrowKeyPrecisionFactor*pitch_dampner*pitch_delta : delta_t*pitch_delta];
-			pitching = YES;
-		}
-	}
-	if((mouse_control_on || (numSticks && !keyboardPitchOverride)) && !capsLockCustomView)
+    if ([gameView isDown:key_pitch_back] && [gameView isDown:key_pitch_forward])
+    {
+        keyboardPitchOverride=YES;
+        flightPitch = 0.0;
+    }
+    else if ([gameView isDown:key_pitch_back] && !capsLockCustomView)
+    {
+        keyboardPitchOverride=YES;
+        if (flightPitch < 0.0)  flightPitch = 0.0;
+        [self increase_flight_pitch:isCtrlDown ? flightArrowKeyPrecisionFactor*pitch_dampner*pitch_delta : delta_t*pitch_delta];
+        pitching = YES;
+    }
+    else if ([gameView isDown:key_pitch_forward] && !capsLockCustomView)
+    {
+        keyboardPitchOverride=YES;
+        if (flightPitch > 0.0)  flightPitch = 0.0;
+        [self decrease_flight_pitch:isCtrlDown ? flightArrowKeyPrecisionFactor*pitch_dampner*pitch_delta : delta_t*pitch_delta];
+        pitching = YES;
+    }
+    else if (([gameView isLeftButtonDownAWhile] || mouse_control_on) && !capsLockCustomView)
+    {
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+        GLfloat y_offset = [[UNIVERSE gameView] y_offset];
+        if (my < y_offset - y_offset / 10)
+        {
+            keyboardPitchOverride=YES;
+            if (flightPitch < 0.0)  flightPitch = 0.0;
+            [self increase_flight_pitch:isCtrlDown ? flightArrowKeyPrecisionFactor*pitch_dampner*pitch_delta : delta_t*pitch_delta];
+            pitching = YES;
+         }
+        else if (my > y_offset + y_offset / 10)
+        {
+            keyboardPitchOverride=YES;
+            if (flightPitch > 0.0)  flightPitch = 0.0;
+            [self decrease_flight_pitch:isCtrlDown ? flightArrowKeyPrecisionFactor*pitch_dampner*pitch_delta : delta_t*pitch_delta];
+            pitching = YES;
+        }
+    }
+	if(numSticks && !keyboardPitchOverride && !capsLockCustomView)
 	{
 		stick_pitch = max_flight_pitch * virtualStick.y;
 		if (flightPitch < stick_pitch)
@@ -3824,30 +3846,26 @@ static NSTimeInterval	time_last_frame;
 	}
 	
 	yawing = NO;
-	// if we have roll on the mouse x-axis, then allow using the keyboard yaw keys
-	if (!mouse_control_on || (mouse_control_on && !mouse_x_axis_map_to_yaw))
-	{
-		if ([gameView isDown:key_yaw_left] && [gameView isDown:key_yaw_right])
-		{
-			keyboardYawOverride=YES;
-			flightYaw = 0.0;
-		}
-		else if ([gameView isDown:key_yaw_left] && !capsLockCustomView)
-		{
-			keyboardYawOverride=YES;
-			if (flightYaw < 0.0)  flightYaw = 0.0;
-			[self increase_flight_yaw:isCtrlDown ? flightArrowKeyPrecisionFactor*yaw_dampner*yaw_delta : delta_t*yaw_delta];
-			yawing = YES;
-		}
-		else if ([gameView isDown:key_yaw_right] && !capsLockCustomView)
-		{
-			keyboardYawOverride=YES;
-			if (flightYaw > 0.0)  flightYaw = 0.0;
-			[self decrease_flight_yaw:isCtrlDown ? flightArrowKeyPrecisionFactor*yaw_dampner*yaw_delta : delta_t*yaw_delta];
-			yawing = YES;
-		}
-	}
-	if(((mouse_control_on && mouse_x_axis_map_to_yaw) || numSticks) && !keyboardYawOverride && !capsLockCustomView)
+    if ([gameView isDown:key_yaw_left] && [gameView isDown:key_yaw_right])
+    {
+        keyboardYawOverride=YES;
+        flightYaw = 0.0;
+    }
+    else if ([gameView isDown:key_yaw_left] && !capsLockCustomView)
+    {
+        keyboardYawOverride=YES;
+        if (flightYaw < 0.0)  flightYaw = 0.0;
+        [self increase_flight_yaw:isCtrlDown ? flightArrowKeyPrecisionFactor*yaw_dampner*yaw_delta : delta_t*yaw_delta];
+        yawing = YES;
+    }
+    else if ([gameView isDown:key_yaw_right] && !capsLockCustomView)
+    {
+        keyboardYawOverride=YES;
+        if (flightYaw > 0.0)  flightYaw = 0.0;
+        [self decrease_flight_yaw:isCtrlDown ? flightArrowKeyPrecisionFactor*yaw_dampner*yaw_delta : delta_t*yaw_delta];
+        yawing = YES;
+    }
+	if(numSticks && !keyboardYawOverride && !capsLockCustomView)
 	{
 		// I think yaw is handled backwards in the code,
 		// which is why the negative sign is here.
