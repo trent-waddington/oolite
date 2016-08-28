@@ -47,7 +47,6 @@ MA 02110-1301, USA.
 #import "OOCacheManager.h"
 #endif
 
-
 typedef struct RunningStack RunningStack;
 struct RunningStack
 {
@@ -233,7 +232,7 @@ static JSFunctionSpec sScriptMethods[] =
 			OOJSStopTimeLimiter();
 			
 			// We don't need the script any more - the event handlers hang around as long as the JS object exists.
-			JS_DestroyScript(context, script);
+			//JS_DestroyScript(context, script);
 		}
 		
 		JS_RemoveObjectRoot(context, &scriptObject);
@@ -745,7 +744,7 @@ static JSScript *LoadScriptWithName(JSContext *context, NSString *path, JSObject
 		else
 		{
 			script = JS_CompileUCScript(context, object, [data bytes], [data length] / sizeof(unichar), [path UTF8String], 1);
-			if (script != NULL)  *outScriptObject = JS_NewScriptObject(context, script);
+			if (script != NULL)  *outScriptObject = script; //JS_NewScriptObject(context, script);
 			else  *outErrorMessage = @"compilation failed";
 		}
 		
@@ -774,7 +773,7 @@ static NSData *CompiledScriptData(JSContext *context, JSScript *script)
 	xdr = JS_XDRNewMem(context, JSXDR_ENCODE);
 	if (xdr != NULL)
 	{
-		if (JS_XDRScript(xdr, &script))
+		if (JS_XDRScriptObject(xdr, &script))
 		{
 			bytes = JS_XDRMemGetData(xdr, &length);
 			if (bytes != NULL)
@@ -803,7 +802,7 @@ static JSScript *ScriptWithCompiledData(JSContext *context, NSData *data)
 		if (EXPECT_NOT(length > UINT32_MAX))  return NULL;
 		
 		JS_XDRMemSetData(xdr, (void *)[data bytes], (uint32_t)length);
-		if (!JS_XDRScript(xdr, &result))  result = NULL;
+		if (!JS_XDRScriptObject(xdr, &result))  result = NULL;
 		
 		JS_XDRMemSetData(xdr, NULL, 0);	// Don't let it be freed by XDRDestroy
 		JS_XDRDestroy(xdr);

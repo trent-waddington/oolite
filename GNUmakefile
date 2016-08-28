@@ -1,3 +1,4 @@
+GNUSTEP_MAKEFILES=/usr/share/GNUstep/Makefiles
 include $(GNUSTEP_MAKEFILES)/common.make
 include config.make
 
@@ -47,9 +48,9 @@ else
     endif
     LIBJS_INC_DIR                = $(LIBJS_ROOT)/dist/include
     LIBJS_LIB_DIR                = $(LIBJS_ROOT)/dist/lib
-    LIBJS = js_static
+    LIBJS = mozjs185
 
-    ADDITIONAL_INCLUDE_DIRS      = -I$(LIBJS_INC_DIR) -Isrc/SDL -Isrc/Core -Isrc/BSDCompat -Isrc/Core/Scripting -Isrc/Core/Materials -Isrc/Core/Entities -Isrc/Core/OXPVerifier -Isrc/Core/Debug -Isrc/Core/Tables -Isrc/Core/MiniZip
+    ADDITIONAL_INCLUDE_DIRS      = -I$(LIBJS_INC_DIR) -Isrc/SDL -Isrc/Core -Isrc/BSDCompat -Isrc/Core/Scripting -Isrc/Core/Materials -Isrc/Core/Entities -Isrc/Core/OXPVerifier -Isrc/Core/Debug -Isrc/Core/Tables -Isrc/Core/MiniZip -I/usr/include/js
     ADDITIONAL_OBJC_LIBS         = -lGLU -lGL -lX11 -lSDL -lgnustep-base -l$(LIBJS) `nspr-config --libs` -lstdc++ -lopenal -lz -lvorbisfile
     ADDITIONAL_CFLAGS            = -Wall -DLINUX -DNEED_STRLCPY `sdl-config --cflags` `nspr-config --cflags`
     ADDITIONAL_OBJCFLAGS         = -Wall -std=gnu99 -DLOADSAVEGUI -DLINUX -DXP_UNIX -Wno-import `sdl-config --cflags` `nspr-config --cflags`
@@ -68,7 +69,7 @@ else
         GNUSTEP_OBJ_DIR_NAME     := $(GNUSTEP_OBJ_DIR_NAME).spk
     endif
     ifeq ($(OO_JAVASCRIPT_TRACE),yes)
-        ADDITIONAL_OBJCFLAGS     += -DMOZ_TRACE_JSCALLS=1
+#        ADDITIONAL_OBJCFLAGS     += -DMOZ_TRACE_JSCALLS=1
     endif
 endif
 
