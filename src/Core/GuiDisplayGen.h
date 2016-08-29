@@ -364,4 +364,6 @@ typedef OOGUITabStop OOGUITabSettings[GUI_MAX_COLUMNS];
 
 - (OOSystemID) targetNextFoundSystem:(int)direction;
 
+- (int) doToolbarClick;
+
 @end

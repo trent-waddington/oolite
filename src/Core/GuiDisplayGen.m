@@ -55,6 +55,7 @@ OOINLINE BOOL RowInRange(OOGUIRow row, NSRange range)
 
 - (void) drawEquipmentList:(NSArray *)eqptList z:(GLfloat)z;
 - (void) drawAdvancedNavArrayAtX:(float)x y:(float)y z:(float)z alpha:(float)alpha usingRoute:(NSDictionary *) route optimizedBy:(OORouteType) optimizeBy zoom: (OOScalar) zoom;
+- (void) drawToolbar:(GLfloat)x :(GLfloat)y :(GLfloat)z :(GLfloat) alpha;
 
 @end
 
@@ -1343,6 +1344,11 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
 			{
 				[player stickProfileGraphAxisProfile: alpha screenAt: make_vector(x,y,z) screenSize: size_in_pixels];
 			}
+
+			if ([player isToolbarVisible])
+            {
+                [self drawToolbar:x :y :z :alpha];
+            }
 		}
 		
 		if (fade_sign)
@@ -1393,7 +1399,7 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
 		OOGL(GLScaledLineWidth(1.0f));
 		
 	}
-	
+
 	return cursor_row;
 }
 
@@ -2525,6 +2531,72 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
 			}
 		}
 	}
+}
+
+- (void) drawToolbar:(GLfloat)x :(GLfloat)y :(GLfloat)z :(GLfloat) alpha
+{
+    GLfloat width = size_in_pixels.width / 8.0f;
+    GLfloat height = pixel_row_height;
+
+    GLfloat y_offset = [[UNIVERSE gameView] y_offset];
+    GLfloat top = -y_offset + 120;
+    GLfloat bottom = top - height;
+    GLfloat left   = x - 0.5f * size_in_pixels.width;
+
+    NSString *labels[8] = { @"Resume", @"Options", @"Outfit", @"Interface", @"Status", @"Chart", @"Data", @"Market" };
+
+    for (int i = 0; i < 8; i++)
+    {
+        OOGL(glColor4f(0.25, 0.25, 0.25, alpha));
+        OOGLBEGIN(GL_QUADS);
+            GLfloat right  = left + width - 1;
+            glVertex3f(left,  top, z);
+            glVertex3f(right, top, z);
+            glVertex3f(right, bottom, z);
+            glVertex3f(left,  bottom, z);
+        OOGLEND();
+
+        OOGL(glColor4f(0.0, 1.0, 0.0, alpha));
+
+        NSString *label = labels[i];
+        if (i == 0 && [PLAYER status] == STATUS_DOCKED)
+            label = @"Launch";
+        else if (i == 2 && [PLAYER status] != STATUS_DOCKED)
+            label = nil;
+        else if (i == 3 && [PLAYER status] != STATUS_DOCKED)
+            label = nil;
+        if (label)
+            OODrawString(label, left, bottom - height * 0.16, z, pixel_text_size);
+
+        left += width;
+    }
+}
+
+- (int) doToolbarClick
+{
+    NSPoint vjpos = [[UNIVERSE gameView] virtualJoystickPosition];
+    double cursor_x = size_in_pixels.width * vjpos.x;
+    double cursor_y = -size_in_pixels.height * vjpos.y;
+
+    GLfloat width = size_in_pixels.width / 8.0f;
+    GLfloat height = pixel_row_height;
+    GLfloat y_offset = [[UNIVERSE gameView] y_offset];
+    GLfloat top = -y_offset + 120;
+    GLfloat bottom = top - height;
+    GLfloat left   = -0.5f * size_in_pixels.width;
+
+    if (cursor_y < bottom || cursor_y > top)
+        return 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        if (cursor_x >= left && cursor_x < left + width)
+            return i + 1;
+
+        left += width;
+    }
+
+    return 0;
 }
 
 @end

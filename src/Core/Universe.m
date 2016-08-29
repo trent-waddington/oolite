@@ -6223,6 +6223,7 @@ OOINLINE BOOL EntityInRange(HPVector p1, Entity *e2, float range)
 
 - (void) enterGUIViewModeWithMouseInteraction:(BOOL)mouseInteraction
 {
+    mouseInteraction = YES; // always YES
 	[self setViewDirection:VIEW_GUI_DISPLAY];
 	[[self gameController] setMouseInteractionModeForUIWithMouseInteraction:mouseInteraction];
 }

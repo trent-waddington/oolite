@@ -10898,6 +10898,24 @@ static NSString *last_outfitting_key=nil;
 	return gui_screen;
 }
 
+- (BOOL) isToolbarVisible
+{
+    if (gui_screen == GUI_SCREEN_STATUS ||
+        gui_screen == GUI_SCREEN_MANIFEST ||
+        gui_screen == GUI_SCREEN_EQUIP_SHIP ||
+        gui_screen == GUI_SCREEN_SHIPYARD ||
+        gui_screen == GUI_SCREEN_LONG_RANGE_CHART ||
+        gui_screen == GUI_SCREEN_SHORT_RANGE_CHART ||
+        gui_screen == GUI_SCREEN_SYSTEM_DATA ||
+        gui_screen == GUI_SCREEN_MARKET ||
+        gui_screen == GUI_SCREEN_MARKETINFO ||
+        gui_screen == GUI_SCREEN_INTERFACES ||
+        gui_screen == GUI_SCREEN_GAMEOPTIONS ||
+        gui_screen == GUI_SCREEN_OPTIONS)
+            return YES;
+    return NO;
+}
+
 
 - (BOOL) tryBuyingCommodity:(OOCommodityType)index all:(BOOL)all
 {
@@ -11448,7 +11466,8 @@ static NSString *last_outfitting_key=nil;
 			// N.b.: this case should never happen.
 			return customViewOffset;
 	}
-	return kZeroVector;
+
+    return kZeroVector;
 }
 
 

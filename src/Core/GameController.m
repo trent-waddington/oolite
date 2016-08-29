@@ -182,6 +182,7 @@ static GameController *sSharedController = nil;
 
 - (void) setMouseInteractionModeForUIWithMouseInteraction:(BOOL)interaction
 {
+    interaction = YES; // always YES
 	[self setMouseInteractionMode:interaction ? MOUSE_MODE_UI_SCREEN_WITH_INTERACTION : MOUSE_MODE_UI_SCREEN_NO_INTERACTION];
 }
 

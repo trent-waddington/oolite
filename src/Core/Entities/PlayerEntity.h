@@ -156,6 +156,7 @@ enum
 	GUI_ROW_MARKET_LAST					= 18,
 	GUI_ROW_MARKET_END					= 19,
 	GUI_ROW_MARKET_CASH					= 20,
+	GUI_ROW_TOOLBAR 					= 21,
 	GUI_ROW_INTERFACES_HEADING			= 1,
 	GUI_ROW_INTERFACES_START			= 3,
 	GUI_MAX_ROWS_INTERFACES				= 12,
@@ -1038,6 +1039,7 @@ typedef enum
 - (void) noteViewDidChangeFrom:(OOViewID)fromView toView:(OOViewID)toView;
 
 - (OOGUIScreenID) guiScreen;
+- (BOOL) isToolbarVisible;
 
 - (void) buySelectedItem;
 

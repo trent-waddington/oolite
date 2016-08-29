@@ -169,6 +169,7 @@ static NSTimeInterval	time_last_frame;
 - (void) pollApplicationControls;
 - (void) pollCustomViewControls;
 - (void) pollViewControls;
+- (void) handleGuiScreenControl:(int) n;
 - (void) pollGuiScreenControls;
 - (void) pollGuiScreenControlsWithFKeyAlias:(BOOL)fKeyAlias;
 - (void) pollMarketScreenControls;
@@ -189,6 +190,7 @@ static NSTimeInterval	time_last_frame;
 // Handlers for individual controls
 - (void) handleButtonIdent;
 - (void) handleButtonTargetMissile;
+- (void) handleToolbarClicks;
 
 @end
 
@@ -414,10 +416,10 @@ static NSTimeInterval	time_last_frame;
 	BOOL			arrow_up = [gameView isDown:key_gui_arrow_up];
 	BOOL			arrow_down = [gameView isDown:key_gui_arrow_down];
 	BOOL			mouse_click = [gameView isDown:gvMouseLeftButton];
-	BOOL			mouse_dbl_click = [gameView isDown:gvMouseDoubleClick];
-	
+
 	if (arrow_down)
 	{
+
 		if ((!upDownKeyPressed) || (script_time > timeLastKeyPress + KEY_REPEAT_INTERVAL))
 		{
 			if ([gui setNextRow: +1])
@@ -469,7 +471,7 @@ static NSTimeInterval	time_last_frame;
 			}
 		}
 	}
-	if (mouse_dbl_click)
+	if ([gameView isDown:gvMouseDoubleClick])
 	{
 		int click_row = 0;
 		if (UNIVERSE)
@@ -487,12 +489,10 @@ static NSTimeInterval	time_last_frame;
 		}
 	}
 
-	
 	upDownKeyPressed = (arrow_up || arrow_down || mouse_click);
-	
+
 	return result;
 }
-
 
 - (void) targetNewSystem:(int) direction whileTyping:(BOOL) whileTyping
 {
@@ -1660,6 +1660,8 @@ static NSTimeInterval	time_last_frame;
 	GameController  *controller = [UNIVERSE gameController];
 	GuiDisplayGen	*gui = [UNIVERSE gui];
 	GUI_ROW_INIT(gui);
+
+    [self handleToolbarClicks];
 	
 	// deal with string inputs as necessary
 	if (gui_screen == GUI_SCREEN_LONG_RANGE_CHART)
@@ -2218,8 +2220,8 @@ static NSTimeInterval	time_last_frame;
 		case GUI_SCREEN_OPTIONS:
 			[self handleGUIUpDownArrowKeys];
 			OOGUIRow guiSelectedRow = [gui selectedRow];
-			BOOL selectKeyPress = ([gameView isDown:13]||[gameView isDown:gvMouseDoubleClick]);
-			
+			BOOL selectKeyPress = ([gameView isDown:13]||[gameView isDown:gvMouseDoubleClick] || [gameView wasLeftButtonClicked]);
+
 			if (selectKeyPress)   // 'enter'
 			{
 				if ((guiSelectedRow == GUI_ROW(,QUICKSAVE))&&(!disc_operation_in_progress))
@@ -2947,7 +2949,7 @@ static NSTimeInterval	time_last_frame;
 	
 	[self handleGUIUpDownArrowKeys];
 	OOGUIRow guiSelectedRow = [gui selectedRow];
-	BOOL selectKeyPress = ([gameView isDown:13]||[gameView isDown:gvMouseDoubleClick]);
+	BOOL selectKeyPress = ([gameView isDown:13]||[gameView isDown:gvMouseDoubleClick] || [gameView wasLeftButtonClicked]);
 	if ([gameView isDown:gvMouseDoubleClick])  [gameView clearMouse];
 	
 	if ((guiSelectedRow == GUI_ROW(GAME,STICKMAPPER)) && selectKeyPress)
@@ -3897,122 +3899,36 @@ static NSTimeInterval	time_last_frame;
 			else	flightYaw = 0.0;
 		}
 	}
-
 }
 
-
-- (void) pollGuiScreenControls
+- (void) handleGuiScreenControl:(int) n
 {
-	[self pollGuiScreenControlsWithFKeyAlias:YES];
-}
-
-
-- (void) pollGuiScreenControlsWithFKeyAlias:(BOOL)fKeyAlias
-{
-	if(!pollControls && fKeyAlias)	// Still OK to run, if we don't use number keys.
-		return;
-	
 	GuiDisplayGen	*gui = [UNIVERSE gui];
 	MyOpenGLView	*gameView = [UNIVERSE gameView];
-	BOOL			docked_okay = ([self status] == STATUS_DOCKED);
-	
-	//  text displays
-	if ([gameView isDown:gvFunctionKey5] || (fKeyAlias && [gameView isDown:key_gui_screen_status]))
-	{
-		if (!switching_status_screens)
-		{
-			switching_status_screens = YES;
-			if (gui_screen == GUI_SCREEN_STATUS)
-			{
-				[self noteGUIWillChangeTo:GUI_SCREEN_MANIFEST];
-				[self setGuiToManifestScreen];
-			}
-			else
-				[self setGuiToStatusScreen];
-			[self checkScript];
-		}
-	}
-	else
-	{
-		switching_status_screens = NO;
-	}
-	
-	if (([gameView isDown:gvFunctionKey6])||(fKeyAlias && [gameView isDown:key_gui_chart_screens]))
-	{
-		mouse_left_down = NO;
-		[gameView clearMouse];
-		if  (!switching_chart_screens)
-		{
-			switching_chart_screens = YES;
-			// handles http://aegidian.org/bb/viewtopic.php?p=233189#p233189
-			if (EXPECT_NOT([self status] == STATUS_WITCHSPACE_COUNTDOWN && gui_screen == GUI_SCREEN_SHORT_RANGE_CHART)) 
-			{
-				// don't switch to LRC if countdown in progress
-				switching_chart_screens = NO;
-			}
-			else if (gui_screen == GUI_SCREEN_SHORT_RANGE_CHART || (gui_screen == GUI_SCREEN_SYSTEM_DATA && showingLongRangeChart))
-			{
-				if (target_chart_zoom != CHART_MAX_ZOOM)
-				{
-					saved_chart_zoom = target_chart_zoom;
-				}
-				target_chart_zoom = CHART_MAX_ZOOM;
-				[self setGuiToLongRangeChartScreen];
-			}
-			else
-			{
-				if (target_chart_zoom == CHART_MAX_ZOOM)
-				{
-					target_chart_zoom = saved_chart_zoom;
-				}
-				//target_chart_centre = cursor_coordinates = [[UNIVERSE systemManager] getCoordinatesForSystem:target_system_id inGalaxy:galaxy_number];
+    BOOL			docked_okay = ([self status] == STATUS_DOCKED);
 
-				[self setGuiToShortRangeChartScreen];
-			}
-		}
-	}
-	else
-	{
-		switching_chart_screens = NO;
-	}
-	
-	if (([gameView isDown:gvFunctionKey7])||(fKeyAlias &&[gameView isDown:key_gui_system_data]))
-	{
-		if (gui_screen != GUI_SCREEN_SYSTEM_DATA)
-		{
-			showingLongRangeChart = (gui_screen == GUI_SCREEN_LONG_RANGE_CHART);
-			[self noteGUIWillChangeTo:GUI_SCREEN_SYSTEM_DATA];
-			[self setGuiToSystemDataScreen];
-		}
-	}
-
-	if (([gameView isDown:gvFunctionKey8])||(fKeyAlias && [gameView isDown:key_gui_market]))
-	{
-		if (gui_screen != GUI_SCREEN_MARKET)
-		{
-			[gameView clearKeys];
-			[self noteGUIWillChangeTo:GUI_SCREEN_MARKET];
-			[self setGuiToMarketScreen];
-		}
-		else
-		{
-			[gameView clearKeys];
-			[self noteGUIWillChangeTo:GUI_SCREEN_MARKETINFO];
-			[self setGuiToMarketInfoScreen];
-		}
-	}
-	
-	
-	if (docked_okay)
-	{	
-		if ((([gameView isDown:gvFunctionKey2])||(fKeyAlias && [gameView isDown:key_view_aft]))&&(gui_screen != GUI_SCREEN_OPTIONS))
-		{
-			[gameView clearKeys];
+    switch (n)
+    {
+        case 1:
+            if (docked_okay)
+            {
+                if (EXPECT(gui_screen != GUI_SCREEN_MISSION || _missionAllowInterrupt))
+                {
+                    [self handleUndockControl];
+                }
+            }
+            else
+            {
+                [self switchToThisView:VIEW_FORWARD];
+            }
+            break;
+        case 2:
+            [gameView clearKeys];
 			[self setGuiToLoadSaveScreen];
-		}
-		
-		if (([gameView isDown:gvFunctionKey3])||(fKeyAlias && [gameView isDown:key_view_port]))
-		{
+            break;
+        case 3:
+            if (!docked_okay)
+                break;
 			if (!switching_equipship_screens)
 			{
 				if ([self dockedStation] == nil)  [self setDockedAtMainStation];
@@ -4037,6 +3953,158 @@ static NSTimeInterval	time_last_frame;
 				[self noteGUIDidChangeFrom:oldScreen to:gui_screen]; 
 			}
 			switching_equipship_screens = YES;
+            break;
+        case 4:
+            if (!docked_okay)
+                break;
+			[self setGuiToInterfacesScreen:0];
+			[gui setSelectedRow:GUI_ROW_INTERFACES_START];
+            break;
+        case 5:
+            if (!switching_status_screens)
+            {
+                switching_status_screens = YES;
+                if (gui_screen == GUI_SCREEN_STATUS)
+                {
+                    [self noteGUIWillChangeTo:GUI_SCREEN_MANIFEST];
+                    [self setGuiToManifestScreen];
+                }
+                else
+                    [self setGuiToStatusScreen];
+                [self checkScript];
+            }
+            break;
+        case 6:
+            mouse_left_down = NO;
+            [gameView clearMouse];
+            if  (!switching_chart_screens)
+            {
+                switching_chart_screens = YES;
+                // handles http://aegidian.org/bb/viewtopic.php?p=233189#p233189
+                if (EXPECT_NOT([self status] == STATUS_WITCHSPACE_COUNTDOWN && gui_screen == GUI_SCREEN_SHORT_RANGE_CHART)) 
+                {
+                    // don't switch to LRC if countdown in progress
+                    switching_chart_screens = NO;
+                }
+                else if (gui_screen == GUI_SCREEN_SHORT_RANGE_CHART || (gui_screen == GUI_SCREEN_SYSTEM_DATA && showingLongRangeChart))
+                {
+                    if (target_chart_zoom != CHART_MAX_ZOOM)
+                    {
+                        saved_chart_zoom = target_chart_zoom;
+                    }
+                    target_chart_zoom = CHART_MAX_ZOOM;
+                    [self setGuiToLongRangeChartScreen];
+                }
+                else
+                {
+                    if (target_chart_zoom == CHART_MAX_ZOOM)
+                    {
+                        target_chart_zoom = saved_chart_zoom;
+                    }
+                    //target_chart_centre = cursor_coordinates = [[UNIVERSE systemManager] getCoordinatesForSystem:target_system_id inGalaxy:galaxy_number];
+
+                    [self setGuiToShortRangeChartScreen];
+                }
+            }
+            break;
+        case 7:
+            if (gui_screen != GUI_SCREEN_SYSTEM_DATA)
+            {
+                showingLongRangeChart = (gui_screen == GUI_SCREEN_LONG_RANGE_CHART);
+                [self noteGUIWillChangeTo:GUI_SCREEN_SYSTEM_DATA];
+                [self setGuiToSystemDataScreen];
+            }
+            break;
+        case 8:
+            if (gui_screen != GUI_SCREEN_MARKET)
+            {
+                [gameView clearKeys];
+                [self noteGUIWillChangeTo:GUI_SCREEN_MARKET];
+                [self setGuiToMarketScreen];
+            }
+            else
+            {
+                [gameView clearKeys];
+                [self noteGUIWillChangeTo:GUI_SCREEN_MARKETINFO];
+                [self setGuiToMarketInfoScreen];
+            }
+            break;
+    }
+}
+
+- (void) pollGuiScreenControls
+{
+	[self pollGuiScreenControlsWithFKeyAlias:YES];
+}
+
+
+- (void) pollGuiScreenControlsWithFKeyAlias:(BOOL)fKeyAlias
+{
+	if(!pollControls && fKeyAlias)	// Still OK to run, if we don't use number keys.
+		return;
+	
+	MyOpenGLView	*gameView = [UNIVERSE gameView];
+	BOOL			docked_okay = ([self status] == STATUS_DOCKED);
+
+    if (docked_okay)
+        esc_pressed = NO;
+    else
+    {
+        if ([gameView isDown:27])
+        {
+            if (!esc_pressed)
+            {
+                if (gui_screen == 0)
+                    [self handleGuiScreenControl:5];
+                else
+                    [self switchToThisView:VIEW_FORWARD];
+            }
+            esc_pressed = YES;
+        }
+        else
+            esc_pressed = NO;
+    }
+	
+	//  text displays
+	if ([gameView isDown:gvFunctionKey5] || (fKeyAlias && [gameView isDown:key_gui_screen_status]))
+	{
+        [self handleGuiScreenControl: 5];
+	}
+	else
+	{
+		switching_status_screens = NO;
+	}
+	
+	if (([gameView isDown:gvFunctionKey6])||(fKeyAlias && [gameView isDown:key_gui_chart_screens]))
+	{
+        [self handleGuiScreenControl: 6];
+	}
+	else
+	{
+		switching_chart_screens = NO;
+	}
+	
+	if (([gameView isDown:gvFunctionKey7])||(fKeyAlias &&[gameView isDown:key_gui_system_data]))
+	{
+        [self handleGuiScreenControl: 7];
+	}
+
+	if (([gameView isDown:gvFunctionKey8])||(fKeyAlias && [gameView isDown:key_gui_market]))
+	{
+        [self handleGuiScreenControl: 8];
+	}
+	
+	
+	if (docked_okay)
+	{	
+		if ((([gameView isDown:gvFunctionKey2])||(fKeyAlias && [gameView isDown:key_view_aft]))&&(gui_screen != GUI_SCREEN_OPTIONS))
+		{
+            [self handleGuiScreenControl: 2];
+		}
+		
+		if (([gameView isDown:gvFunctionKey3])||(fKeyAlias && [gameView isDown:key_view_port]))
+		{
+            [self handleGuiScreenControl: 3];
 		}
 		else
 		{
@@ -4045,8 +4113,7 @@ static NSTimeInterval	time_last_frame;
 		
 		if (([gameView isDown:gvFunctionKey4])||(fKeyAlias && [gameView isDown:key_view_starboard]))
 		{
-			[self setGuiToInterfacesScreen:0];
-			[gui setSelectedRow:GUI_ROW_INTERFACES_START];
+            [self handleGuiScreenControl: 4];
 		}
 
 	}
@@ -4162,7 +4229,6 @@ static BOOL autopilot_pause;
 	}
 }
 
-
 - (void) pollDockedControls:(double)delta_t
 {
 	MyOpenGLView			*gameView = [UNIVERSE gameView];
@@ -4212,10 +4278,10 @@ static BOOL autopilot_pause;
 			exceptionContext = @"undock";
 			if ([gameView isDown:gvFunctionKey1] || [gameView isDown:key_view_forward])   // look for the f1 key
 			{
-				if (EXPECT(gui_screen != GUI_SCREEN_MISSION || _missionAllowInterrupt))
-				{
-					[self handleUndockControl];
-				}
+                if (EXPECT(gui_screen != GUI_SCREEN_MISSION || _missionAllowInterrupt))
+                {
+                    [self handleUndockControl];
+                }
 			}
 		}
 		
@@ -4254,7 +4320,6 @@ static BOOL autopilot_pause;
 	[self launchFromStation];
 }
 
-
 - (void) pollDemoControls:(double)delta_t
 {
 	MyOpenGLView	*gameView = [UNIVERSE gameView];
@@ -4270,9 +4335,11 @@ static BOOL autopilot_pause;
 			int row_zero = 21;
 			if (!selectPressed)
 			{
+                BOOL was_click = [gameView wasLeftButtonClicked];
+
 				if (!disc_operation_in_progress)
 				{
-					if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13]) && [gui selectedRow] == 2+row_zero)
+					if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13] || was_click) && [gui selectedRow] == 2+row_zero)
 					{
 						disc_operation_in_progress = YES;
 						[UNIVERSE removeDemoShips];
@@ -4284,24 +4351,24 @@ static BOOL autopilot_pause;
 						break;
 					}
 				}
-				if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13]) && [gui selectedRow] == 1+row_zero)
+				if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13] || was_click) && [gui selectedRow] == 1+row_zero)
 				{
 					missionTextRow = 0;
 					[self setGuiToScenarioScreen:0];
 				} 
-				else if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13]) && [gui selectedRow] == 3+row_zero)
+				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == 3+row_zero)
 				{
 					[self setGuiToIntroFirstGo:NO];
 				}
-				else if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13]) && [gui selectedRow] == 4+row_zero)
+				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == 4+row_zero)
 				{
 					[self setGuiToKeySettingsScreen];
 				}
-				else if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13]) && [gui selectedRow] == 5+row_zero)
+				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == 5+row_zero)
 				{
 					[self setGuiToOXZManager];
 				}
-				else if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13]) && [gui selectedRow] == 6+row_zero)
+				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == 6+row_zero)
 				{
 					[[UNIVERSE gameController] exitAppWithContext:@"Exit Game selected on start screen"];
 				}
@@ -4365,7 +4432,7 @@ static BOOL autopilot_pause;
 
 			if (!selectPressed)
 			{
-				if ([gameView isDown:13] || [gameView isDown:gvMouseDoubleClick]) // enter
+				if ([gameView isDown:13] || [gameView isDown:gvMouseDoubleClick] || [gameView wasLeftButtonClicked]) // enter
 				{
 					if (![self startScenario])
 					{
@@ -4914,6 +4981,21 @@ abort:
 		[self playMineArmed];
 	}
 	ident_engaged = NO;
+}
+
+- (void) handleToolbarClicks
+{
+    if ([self isToolbarVisible])
+    {
+        MyOpenGLView *gameView = [UNIVERSE gameView];
+        if ([gameView wasLeftButtonClicked])
+        {
+            GuiDisplayGen	*gui = [UNIVERSE gui];
+            int n = [gui doToolbarClick];
+            if (n > 0)
+                [self handleGuiScreenControl: n];
+        }
+    }
 }
 
 @end
