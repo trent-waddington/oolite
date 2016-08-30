@@ -2257,6 +2257,8 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
     double min_y = 0, max_y = 0;
     double min_z = 0, max_z = 0;
 
+    double bb_not_to_scale = 4.0;
+
     NSArray *entities = [UNIVERSE entityList];
     int i;
     BOOL first = YES;
@@ -2302,6 +2304,9 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
         {
             GLfloat pw, ph, pd;
             bounding_box_get_dimensions([entity boundingBox], &pw, &ph, &pd);
+            pw *= bb_not_to_scale;
+            ph *= bb_not_to_scale;
+            pd *= bb_not_to_scale;
 
             if (first)
             {
@@ -2356,6 +2361,11 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
     double mid_y = min_y + span_y / 2;
     double mid_z = min_z + span_z / 2;
 
+    double y_mod = 0;
+    GLfloat py = (pos.y - mid_y) * zoom * map_h / span_y;
+    GLfloat pz = (pos.z - mid_z) * zoom * map_h / span_y;
+    y_mod = top - map_h / 2 - ((py + pz) / 2);
+
     for (i = 0; i < [entities count]; i++)
     {
         Entity *entity = [entities objectAtIndex:i];
@@ -2365,7 +2375,7 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
         GLfloat px = (pos.x - mid_x) * zoom * map_w / span_x;
         GLfloat py = (pos.y - mid_y) * zoom * map_h / span_y;
         GLfloat pz = (pos.z - mid_z) * zoom * map_h / span_y;
-        GLfloat yy = ((py + pz) / 2);
+        GLfloat yy = ((py + pz) / 2) + y_mod;
         if (map_x + px < left || map_x + px > right)
             continue;
         if (map_y - yy < bottom || map_y - yy > top)
@@ -2376,6 +2386,8 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
         else
             OOGL(glColor4f(1, 1, 1, alpha));
 
+        float rx, ry;
+
         if ([entity isStellarObject])
         {
             if ([entity isSun])
@@ -2384,31 +2396,15 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
                 OOGL(glColor4f(0, 0.75f, 0, alpha));
             float r = [(Entity<OOStellarBody> *)entity radius];
             r *= zoom * map_w / span_x;
-            int num_segments = 32;
-            float theta = 2 * 3.1415926 / (float)num_segments;
-            float c = cosf(theta);
-            float s = sinf(theta);
-            float t;
-
-            float x = r;
-            float y = 0;
-
-            OOGLBEGIN(GL_LINE_LOOP);
-                int j;
-                for (j = 0; j < num_segments; j++)
-                {
-                    glVertex3f(map_x + px + x,      map_y - yy - y,      z);
-
-                    t = x;
-                    x = c * x - s * y;
-                    y = s * t + c * y;
-                }
-            OOGLEND();
+            rx = ry = r;
         }
         else
         {
             GLfloat pw, ph, pd;
             bounding_box_get_dimensions([entity boundingBox], &pw, &ph, &pd);
+            pw *= bb_not_to_scale;
+            ph *= bb_not_to_scale;
+            pd *= bb_not_to_scale;
             pw *= zoom * map_w / span_x;
             ph *= zoom * map_h / span_y;
             pd *= zoom * map_h / span_y;
@@ -2420,12 +2416,45 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
                 pd = 1;
             ph = (ph + pd) / 2;
 
-            OOGLBEGIN(GL_QUADS);
-                glVertex3f(map_x + px - pw / 2, map_y - yy + ph / 2, z);
-                glVertex3f(map_x + px + pw / 2, map_y - yy + ph / 2, z);
-                glVertex3f(map_x + px + pw / 2, map_y - yy - ph / 2, z);
-                glVertex3f(map_x + px - pw / 2, map_y - yy - ph / 2, z);
-            OOGLEND();
+            rx = pw / 2;
+            ry = ph / 2;
+        }
+
+        int num_segments = 32 * zoom;
+        float theta = 2 * 3.1415926 / (float)num_segments;
+        float c = cosf(theta);
+        float s = sinf(theta);
+        float t;
+        float ys = ry / rx;
+
+        float x = rx;
+        float y = 0;
+
+        OOGLBEGIN(GL_LINE_LOOP);
+            int j;
+            for (j = 0; j < num_segments; j++)
+            {
+                glVertex3f(map_x + px + x, map_y - yy - y * ys, z);
+
+                t = x;
+                x = c * x - s * y;
+                y = s * t + c * y;
+            }
+        OOGLEND();
+
+        if (entity != player && [entity isShip])
+        {
+            NSPoint vjpos = [[UNIVERSE gameView] virtualJoystickPosition];
+            double cursor_x = size_in_pixels.width * vjpos.x;
+            double cursor_y = -size_in_pixels.height * vjpos.y;
+            if (cursor_x >= map_x + px - rx && cursor_x <= map_x + px + ry &&
+                cursor_y >= map_y - yy - ry && cursor_y <= map_y - yy + ry)
+            {
+                NSString *label = [(ShipEntity *)entity displayName];
+                NSSize text_size = NSMakeSize(10.0, 10.0);
+                NSSize strsize = OORectFromString(label, 0.0f, 0.0f, text_size).size;
+                OODrawString(label, map_x + px - strsize.width / 2, map_y - yy - ry - 1.2 * strsize.height, z, text_size);
+            }
         }
     }
 }
