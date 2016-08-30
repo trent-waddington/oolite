@@ -496,6 +496,7 @@ typedef enum
 	OOScalar				chart_zoom;
 	OOScalar				target_chart_zoom;
 	OOScalar				saved_chart_zoom;
+    OOScalar                map_zoom;
 	OORouteType				ANA_mode;
 	OOTimeDelta				witchspaceCountdown;
 	
@@ -775,6 +776,7 @@ typedef enum
 - (NSPoint) chart_centre_coordinates;
 - (OOScalar) chart_zoom;
 - (NSPoint) adjusted_chart_centre;
+- (OOScalar) map_zoom;
 - (OORouteType) ANAMode;
 
 
@@ -998,6 +1000,7 @@ typedef enum
 - (unsigned) legalStatusOfCargoList;
 
 - (void) setGuiToSystemDataScreen;
+- (void) setGuiToSystemMapScreen;
 - (NSDictionary *) markedDestinations;
 - (void) setGuiToLongRangeChartScreen;
 - (void) setGuiToShortRangeChartScreen;

@@ -1541,6 +1541,11 @@
 	"sysdata-radius"				= "Average radius:";
 	"sysdata-radius-value"			= "[radius] km";
 	"system-description-string"		= "[14] is [22].";
+
+    // System map screen
+    "sysdata-map-of-system"              = "Map of [system]";
+	"sysdata-map-of-system-no-name"	    = "No map available";
+	"sysdata-map-of-system-no-data"	    = "No map of this system is currently available";
 	
 	// Options / Loadsave screen
 	"options-quick-save"			= " Quick-Save ";

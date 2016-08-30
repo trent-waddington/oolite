@@ -38,6 +38,7 @@ MA 02110-1301, USA.
 #import "OOJavaScriptEngine.h"
 #import "PlayerEntityStickProfile.h"
 #import "OOSystemDescriptionManager.h"
+#import "OOStellarBody.h"
 
 OOINLINE BOOL RowInRange(OOGUIRow row, NSRange range)
 {
@@ -50,6 +51,7 @@ OOINLINE BOOL RowInRange(OOGUIRow row, NSRange range)
 
 - (void) drawCrossHairsWithSize:(GLfloat) size x:(GLfloat)x y:(GLfloat)y z:(GLfloat)z;
 - (void) drawStarChart:(GLfloat)x :(GLfloat)y :(GLfloat)z :(GLfloat) alpha :(BOOL) compact;
+- (void) drawSystemMap:(GLfloat)x :(GLfloat)y :(GLfloat)z :(GLfloat) alpha :(BOOL) compact;
 - (void) drawSystemMarkers:(NSArray *)marker atX:(GLfloat)x andY:(GLfloat)y andZ:(GLfloat)z withAlpha:(GLfloat)alpha andScale:(GLfloat)scale;
 - (void) drawSystemMarker:(NSDictionary *)marker atX:(GLfloat)x andY:(GLfloat)y andZ:(GLfloat)z withAlpha:(GLfloat)alpha andScale:(GLfloat)scale;
 
@@ -1344,6 +1346,10 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
 			{
 				[player stickProfileGraphAxisProfile: alpha screenAt: make_vector(x,y,z) screenSize: size_in_pixels];
 			}
+            if ([player guiScreen] == GUI_SCREEN_SYSTEM_MAP)
+            {
+                [self drawSystemMap:x - 0.5f * size_in_pixels.width :y - 0.5f * size_in_pixels.height :z :alpha :YES];
+            }
 
 			if ([player isToolbarVisible])
             {
@@ -2233,6 +2239,196 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
 	OOGLEND();
 }
 
+- (void) drawSystemMap:(GLfloat)x :(GLfloat)y :(GLfloat)z :(GLfloat) alpha :(BOOL)compact
+{
+	PlayerEntity* player = PLAYER;
+
+	if (!player)
+		return;
+
+	NSInteger textRow = GUI_ROW_CHART_SYSTEM;
+
+    GLfloat top = y + size_in_pixels.height - pixel_title_size.height;
+    GLfloat bottom = top - (textRow-1)*MAIN_GUI_ROW_HEIGHT;
+    GLfloat left = x;
+    GLfloat right = x + size_in_pixels.width;
+
+    double min_x = 0, max_x = 0;
+    double min_y = 0, max_y = 0;
+    double min_z = 0, max_z = 0;
+
+    NSArray *entities = [UNIVERSE entityList];
+    int i;
+    BOOL first = YES;
+#define ON_MAP(e) ([e isPlayer] || [e isStation] || [e isStellarObject])
+    for (i = 0; i < [entities count]; i++)
+    {
+        Entity *entity = [entities objectAtIndex:i];
+        if (!ON_MAP(entity))
+            continue;
+        HPVector pos = [entity position];
+        if ([entity isStellarObject])
+        {
+
+            float r = [(Entity<OOStellarBody> *)entity radius];
+
+            if (first)
+            {
+                min_x = pos.x - r;
+                max_x = pos.x + r;
+                min_y = pos.y - r;
+                max_y = pos.y + r;
+                min_z = pos.z - r;
+                max_z = pos.z + r;
+                first = NO;
+            }
+            else
+            {
+                if (pos.x - r < min_x)
+                    min_x = pos.x - r;
+                if (pos.x + r > max_x)
+                    max_x = pos.x + r;
+                if (pos.y - r < min_y)
+                    min_y = pos.y - r;
+                if (pos.y + r > max_y)
+                    max_y = pos.y + r;
+                if (pos.z - r < min_z)
+                    min_z = pos.z - r;
+                if (pos.z + r > max_z)
+                    max_z = pos.z + r;
+            }
+        }
+        else
+        {
+            GLfloat pw, ph, pd;
+            bounding_box_get_dimensions([entity boundingBox], &pw, &ph, &pd);
+
+            if (first)
+            {
+                min_x = pos.x - pw / 2;
+                max_x = pos.x + pw / 2;
+                min_y = pos.y - ph / 2;
+                max_y = pos.y + ph / 2;
+                min_z = pos.z - pd / 2;
+                max_z = pos.z + pd / 2;
+                first = NO;
+            }
+            else
+            {
+                if (pos.x - pw / 2 < min_x)
+                    min_x = pos.x - pw / 2;
+                if (pos.y - ph / 2 < min_y)
+                    min_y = pos.y - ph / 2;
+                if (pos.z - pd / 2 < min_z)
+                    min_z = pos.z - pd / 2;
+                if (pos.x + pw / 2 > max_x)
+                    max_x = pos.x + pw / 2;
+                if (pos.y + ph / 2 > max_y)
+                    max_y = pos.y + ph / 2;
+                if (pos.z + pd / 2 > max_z)
+                    max_z = pos.z + pd / 2;
+            }
+        }
+    }
+
+    double span_x = max_x - min_x;
+    double span_y = max_y - min_y;
+    double span_z = max_z - min_z;
+
+    // spans so that the player is in the center 
+    HPVector pos = [player position];
+    double diff_x = pos.x - (min_x + span_x / 2);
+    if (diff_x > 0)
+        span_x += diff_x * 2;
+    else
+    {
+        min_x += diff_x;
+        span_x -= diff_x;
+    }
+
+    double map_w = fabs(right - left);
+    double map_h = fabs(top - bottom);
+    double map_x = left + map_w / 2;
+    double map_y = top - map_h / 2;
+
+    double zoom = [player map_zoom];
+    double mid_x = min_x + span_x / 2;
+    double mid_y = min_y + span_y / 2;
+    double mid_z = min_z + span_z / 2;
+
+    for (i = 0; i < [entities count]; i++)
+    {
+        Entity *entity = [entities objectAtIndex:i];
+        if (!ON_MAP(entity))
+            continue;
+        HPVector pos = [entity position];
+        GLfloat px = (pos.x - mid_x) * zoom * map_w / span_x;
+        GLfloat py = (pos.y - mid_y) * zoom * map_h / span_y;
+        GLfloat pz = (pos.z - mid_z) * zoom * map_h / span_y;
+        GLfloat yy = ((py + pz) / 2);
+        if (map_x + px < left || map_x + px > right)
+            continue;
+        if (map_y - yy < bottom || map_y - yy > top)
+            continue;
+
+        if ([entity isPlayer])
+            OOGL(glColor4f(0, 1, 0, alpha));
+        else
+            OOGL(glColor4f(1, 1, 1, alpha));
+
+        if ([entity isStellarObject])
+        {
+            if ([entity isSun])
+                OOGL(glColor4f(1.0f, 1.0f, 0.75f, alpha));
+            else
+                OOGL(glColor4f(0, 0.75f, 0, alpha));
+            float r = [(Entity<OOStellarBody> *)entity radius];
+            r *= zoom * map_w / span_x;
+            int num_segments = 32;
+            float theta = 2 * 3.1415926 / (float)num_segments;
+            float c = cosf(theta);
+            float s = sinf(theta);
+            float t;
+
+            float x = r;
+            float y = 0;
+
+            OOGLBEGIN(GL_LINE_LOOP);
+                int j;
+                for (j = 0; j < num_segments; j++)
+                {
+                    glVertex3f(map_x + px + x,      map_y - yy - y,      z);
+
+                    t = x;
+                    x = c * x - s * y;
+                    y = s * t + c * y;
+                }
+            OOGLEND();
+        }
+        else
+        {
+            GLfloat pw, ph, pd;
+            bounding_box_get_dimensions([entity boundingBox], &pw, &ph, &pd);
+            pw *= zoom * map_w / span_x;
+            ph *= zoom * map_h / span_y;
+            pd *= zoom * map_h / span_y;
+            if (pw < 1)
+                pw = 1;
+            if (ph < 1)
+                ph = 1;
+            if (pd < 1)
+                pd = 1;
+            ph = (ph + pd) / 2;
+
+            OOGLBEGIN(GL_QUADS);
+                glVertex3f(map_x + px - pw / 2, map_y - yy + ph / 2, z);
+                glVertex3f(map_x + px + pw / 2, map_y - yy + ph / 2, z);
+                glVertex3f(map_x + px + pw / 2, map_y - yy - ph / 2, z);
+                glVertex3f(map_x + px - pw / 2, map_y - yy - ph / 2, z);
+            OOGLEND();
+        }
+    }
+}
 
 - (void) drawSystemMarkers:(NSArray *)markers atX:(GLfloat)x andY:(GLfloat)y andZ:(GLfloat)z withAlpha:(GLfloat)alpha andScale:(GLfloat)scale
 {

@@ -130,6 +130,7 @@ static BOOL				spacePressed;
 static BOOL				chartInfoPressed;
 static BOOL				switching_chart_screens;
 static BOOL				switching_status_screens;
+static BOOL				switching_system_screens;
 //static BOOL				switching_market_screens;
 static BOOL				switching_equipship_screens;
 static BOOL				zoom_pressed;
@@ -1615,6 +1616,9 @@ static NSTimeInterval	time_last_frame;
 							if (gui_screen != GUI_SCREEN_SYSTEM_DATA)
 								[self setGuiToSystemDataScreen];
 							break;
+                        case GUI_SCREEN_SYSTEM_MAP:
+                            [self setGuiToSystemMapScreen];
+                            break;
 						default:
 							gui_screen = saved_gui_screen;	// make sure we're back to the right screen
 							break;
@@ -2104,7 +2108,18 @@ static NSTimeInterval	time_last_frame;
 				target_info_pressed = NO;
 			}
 			break;
-			
+        case GUI_SCREEN_SYSTEM_MAP:
+            if ([gameView isDown:gvPageDownKey] || [gameView mouseWheelState] == gvMouseWheelDown)
+            {
+                map_zoom *= CHART_ZOOM_SPEED_FACTOR;
+            }
+            if ([gameView isDown:gvPageUpKey] || [gameView mouseWheelState] == gvMouseWheelUp)
+            {
+                map_zoom /= CHART_ZOOM_SPEED_FACTOR;
+                if (map_zoom < 1.0) map_zoom = 1.0;
+            }
+            break;
+
 #if OO_USE_CUSTOM_LOAD_SAVE
 			// DJS: Farm off load/save screen options to LoadSave.m
 		case GUI_SCREEN_LOAD:
@@ -4011,11 +4026,20 @@ static NSTimeInterval	time_last_frame;
             }
             break;
         case 7:
-            if (gui_screen != GUI_SCREEN_SYSTEM_DATA)
+            if (!switching_system_screens)
             {
-                showingLongRangeChart = (gui_screen == GUI_SCREEN_LONG_RANGE_CHART);
-                [self noteGUIWillChangeTo:GUI_SCREEN_SYSTEM_DATA];
-                [self setGuiToSystemDataScreen];
+                switching_system_screens = YES;
+                if (gui_screen == GUI_SCREEN_SYSTEM_DATA)
+                {
+                    [self noteGUIWillChangeTo:GUI_SCREEN_SYSTEM_MAP];
+                    [self setGuiToSystemMapScreen];
+                }
+                else
+                {
+                    showingLongRangeChart = (gui_screen == GUI_SCREEN_LONG_RANGE_CHART);
+                    [self noteGUIWillChangeTo:GUI_SCREEN_SYSTEM_DATA];
+                    [self setGuiToSystemDataScreen];
+                }
             }
             break;
         case 8:
@@ -4091,6 +4115,10 @@ static NSTimeInterval	time_last_frame;
 	{
         [self handleGuiScreenControl: 7];
 	}
+    else
+    {
+        switching_system_screens = NO;
+    }
 
 	if (([gameView isDown:gvFunctionKey8])||(fKeyAlias && [gameView isDown:key_gui_market]))
 	{
@@ -4726,6 +4754,10 @@ static BOOL autopilot_pause;
 	case GUI_SCREEN_SYSTEM_DATA:
 		[self noteGUIWillChangeTo:GUI_SCREEN_SYSTEM_DATA];
 		[self setGuiToSystemDataScreen];
+		break;
+	case GUI_SCREEN_SYSTEM_MAP:
+		[self noteGUIWillChangeTo:GUI_SCREEN_SYSTEM_MAP];
+		[self setGuiToSystemMapScreen];
 		break;
 	case GUI_SCREEN_MARKET:
 		[self noteGUIWillChangeTo:GUI_SCREEN_MARKET];

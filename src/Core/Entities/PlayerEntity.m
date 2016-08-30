@@ -548,7 +548,6 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 	return chart_zoom;
 }
 
-
 - (NSPoint) adjusted_chart_centre
 {
 	NSPoint acc;		// adjusted chart centre
@@ -627,6 +626,10 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 	return acc;
 }
 
+- (OOScalar) map_zoom
+{
+    return map_zoom;
+}
 
 - (OORouteType) ANAMode
 {
@@ -1195,6 +1198,7 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 		chart_zoom = [dict oo_floatForKey:@"chart_zoom" defaultValue:1.0];
 		target_chart_zoom = chart_zoom;
 		saved_chart_zoom = chart_zoom;
+		map_zoom = [dict oo_floatForKey:@"map_zoom" defaultValue:1.0];
 		ANA_mode = [dict oo_intForKey:@"chart_ana_mode" defaultValue:OPTIMIZED_BY_NONE];
 		longRangeChartMode = [dict oo_intForKey:@"chart_colour_mode" defaultValue:OOLRC_MODE_NORMAL];
 
@@ -1226,6 +1230,7 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 		chart_zoom = 1.0;
 		target_chart_zoom = 1.0;
 		saved_chart_zoom = 1.0;
+		map_zoom = 1.0;
 		ANA_mode = OPTIMIZED_BY_NONE;
 		
 		NSString *keyStringValue = [dict oo_stringForKey:@"target_coordinates"];
@@ -2078,6 +2083,7 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 	chart_zoom			= 1.0;
 	target_chart_zoom		= 1.0;
 	saved_chart_zoom		= 1.0;
+	map_zoom			= 1.0;
 	ANA_mode			= OPTIMIZED_BY_NONE;
 
 	
@@ -3417,6 +3423,7 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 			case GUI_SCREEN_SHORT_RANGE_CHART:
 			case GUI_SCREEN_STATUS:
 			case GUI_SCREEN_SYSTEM_DATA:
+			case GUI_SCREEN_SYSTEM_MAP:
 				// Test passed, we can run scripts. Nothing to do here.
 				break;
 		}
@@ -8079,8 +8086,7 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 	gui_screen = GUI_SCREEN_SYSTEM_DATA;
 	BOOL			guiChanged = (oldScreen != gui_screen);
 
-	Random_Seed		infoSystemRandomSeed = [[UNIVERSE systemManager] getRandomSeedForSystem:info_system_id
-																				  inGalaxy:[self galaxyNumber]];
+	Random_Seed		infoSystemRandomSeed = [[UNIVERSE systemManager] getRandomSeedForSystem:info_system_id inGalaxy:[self galaxyNumber]];
 	
 	[[UNIVERSE gameController] setMouseInteractionModeForUIWithMouseInteraction:NO];
 	
@@ -8278,6 +8284,55 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 	}
 }
 
+- (void) setGuiToSystemMapScreen
+{
+	NSDictionary	*infoSystemData;
+	NSString		*infoSystemName;
+	
+	infoSystemData = [[UNIVERSE generateSystemData:system_id] retain];  // retained
+	NSInteger concealment = [infoSystemData oo_intForKey:@"concealment" defaultValue:OO_SYSTEMCONCEALMENT_NONE];
+	infoSystemName = [infoSystemData oo_stringForKey:KEY_NAME];
+
+	Random_Seed		infoSystemRandomSeed = [[UNIVERSE systemManager] getRandomSeedForSystem:info_system_id inGalaxy:[self galaxyNumber]];
+
+	OOGUIScreenID	oldScreen = gui_screen;
+
+	GuiDisplayGen	*gui = [UNIVERSE gui];
+	gui_screen = GUI_SCREEN_SYSTEM_MAP;
+	BOOL			guiChanged = (oldScreen != gui_screen);
+
+    [gui clearAndKeepBackground:!guiChanged];
+    [UNIVERSE removeDemoShips];
+
+	// GUI stuff
+	{
+        if (concealment < OO_SYSTEMCONCEALMENT_NONAME)
+        {
+            NSString *system = infoSystemName;
+            //[gui setTitle:OOExpandKeyWithSeed(infoSystemRandomSeed, @"sysdata-data-on-system", system)];
+            [gui setTitle:OOExpandKeyWithSeed(infoSystemRandomSeed, @"sysdata-map-of-system", system)];
+        }
+        else
+        {
+            [gui setTitle:OOExpandKey(@"sysdata-map-of-system-no-name")];
+        }
+    }
+	/* ends */
+
+	[infoSystemData release];
+
+	[self setShowDemoShips:NO];
+	[UNIVERSE enterGUIViewModeWithMouseInteraction:NO];
+
+	if (guiChanged)
+	{
+		[gui setForegroundTextureKey:[self status] == STATUS_DOCKED ? @"docked_overlay" : @"overlay"];
+		[gui setBackgroundTextureKey:@"system_map"];
+		
+		[self noteGUIDidChangeFrom:oldScreen to:gui_screen];
+		[self checkScript];	// Still needed by some OXPs?
+	}
+}
 
 - (void) prepareMarkedDestination:(NSMutableDictionary *)markers :(NSDictionary *)marker
 {
@@ -10907,6 +10962,7 @@ static NSString *last_outfitting_key=nil;
         gui_screen == GUI_SCREEN_LONG_RANGE_CHART ||
         gui_screen == GUI_SCREEN_SHORT_RANGE_CHART ||
         gui_screen == GUI_SCREEN_SYSTEM_DATA ||
+        gui_screen == GUI_SCREEN_SYSTEM_MAP ||
         gui_screen == GUI_SCREEN_MARKET ||
         gui_screen == GUI_SCREEN_MARKETINFO ||
         gui_screen == GUI_SCREEN_INTERFACES ||
