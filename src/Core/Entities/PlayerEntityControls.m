@@ -1826,29 +1826,32 @@ static NSTimeInterval	time_last_frame;
 				if ([gameView isDown:gvMouseLeftButton])
 				{
 					NSPoint maus = [gameView virtualJoystickPosition];
-					double vadjust = MAIN_GUI_PIXEL_HEIGHT/2.0 - CHART_SCREEN_VERTICAL_CENTRE;
-					double hscale = MAIN_GUI_PIXEL_WIDTH / (64.0 * chart_zoom);
-					double vscale = MAIN_GUI_PIXEL_HEIGHT / (128.0 * chart_zoom);
-					if (mouse_left_down == NO)
-					{
-						NSPoint centre = [self adjusted_chart_centre];
-						centre_at_mouse_click = chart_centre_coordinates;
-						mouse_click_position = maus;
-						chart_focus_coordinates.x = OOClamp_0_max_f(centre.x + (maus.x * MAIN_GUI_PIXEL_WIDTH) / hscale, 256.0);
-						chart_focus_coordinates.y = OOClamp_0_max_f(centre.y + (maus.y * MAIN_GUI_PIXEL_HEIGHT + vadjust) / vscale, 256.0);
-						target_chart_focus = chart_focus_coordinates;
-					}
-					if (fabs(maus.x - mouse_click_position.x)*MAIN_GUI_PIXEL_WIDTH > 2 ||
-						fabs(maus.y - mouse_click_position.y)*MAIN_GUI_PIXEL_HEIGHT > 2)
-					{
-						chart_centre_coordinates.x = OOClamp_0_max_f(centre_at_mouse_click.x - (maus.x - mouse_click_position.x)*MAIN_GUI_PIXEL_WIDTH/hscale, 256.0);
-						chart_centre_coordinates.y = OOClamp_0_max_f(centre_at_mouse_click.y - (maus.y - mouse_click_position.y)*MAIN_GUI_PIXEL_HEIGHT/vscale, 256.0);
-						target_chart_centre = chart_centre_coordinates;
-						dragging = YES;
-					}
-					if (gui_screen == GUI_SCREEN_LONG_RANGE_CHART)
-						[gameView resetTypedString];
-					mouse_left_down = YES;
+                    if (maus.y > -0.455 && maus.y < 0.153)
+                    {
+                        double vadjust = MAIN_GUI_PIXEL_HEIGHT/2.0 - CHART_SCREEN_VERTICAL_CENTRE;
+                        double hscale = MAIN_GUI_PIXEL_WIDTH / (64.0 * chart_zoom);
+                        double vscale = MAIN_GUI_PIXEL_HEIGHT / (128.0 * chart_zoom);
+                        if (mouse_left_down == NO)
+                        {
+                            NSPoint centre = [self adjusted_chart_centre];
+                            centre_at_mouse_click = chart_centre_coordinates;
+                            mouse_click_position = maus;
+                            chart_focus_coordinates.x = OOClamp_0_max_f(centre.x + (maus.x * MAIN_GUI_PIXEL_WIDTH) / hscale, 256.0);
+                            chart_focus_coordinates.y = OOClamp_0_max_f(centre.y + (maus.y * MAIN_GUI_PIXEL_HEIGHT + vadjust) / vscale, 256.0);
+                            target_chart_focus = chart_focus_coordinates;
+                        }
+                        if (fabs(maus.x - mouse_click_position.x)*MAIN_GUI_PIXEL_WIDTH > 2 ||
+                            fabs(maus.y - mouse_click_position.y)*MAIN_GUI_PIXEL_HEIGHT > 2)
+                        {
+                            chart_centre_coordinates.x = OOClamp_0_max_f(centre_at_mouse_click.x - (maus.x - mouse_click_position.x)*MAIN_GUI_PIXEL_WIDTH/hscale, 256.0);
+                            chart_centre_coordinates.y = OOClamp_0_max_f(centre_at_mouse_click.y - (maus.y - mouse_click_position.y)*MAIN_GUI_PIXEL_HEIGHT/vscale, 256.0);
+                            target_chart_centre = chart_centre_coordinates;
+                            dragging = YES;
+                        }
+                        if (gui_screen == GUI_SCREEN_LONG_RANGE_CHART)
+                            [gameView resetTypedString];
+                        mouse_left_down = YES;
+                    }
 				}
 				else if (mouse_left_down == YES) 
 				{
