@@ -2454,6 +2454,9 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
                 NSSize text_size = NSMakeSize(10.0, 10.0);
                 NSSize strsize = OORectFromString(label, 0.0f, 0.0f, text_size).size;
                 OODrawString(label, map_x + px - strsize.width / 2, map_y - yy - ry - 1.2 * strsize.height, z, text_size);
+
+                if ([[UNIVERSE gameView] isDown:gvMouseLeftButton])
+                    [PLAYER addTarget: entity];
             }
         }
     }

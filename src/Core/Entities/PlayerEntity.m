@@ -3019,11 +3019,12 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 	
 	// scanner sanity check - lose any targets further than maximum scanner range
 	ShipEntity *primeTarget = [self primaryTarget];
-	if (primeTarget && HPdistance2([primeTarget position], [self position]) > SCANNER_MAX_RANGE2 && !autopilot_engaged)
+	if (primeTarget && ![primeTarget isStation] && HPdistance2([primeTarget position], [self position]) > SCANNER_MAX_RANGE2 && !autopilot_engaged)
 	{
 		[UNIVERSE addMessage:DESC(@"target-lost") forCount:3.0];
 		[self removeTarget:primeTarget];
 	}
+
 	// compass sanity check and update target for changed mode
 	[self validateCompassTarget];
 	
@@ -3772,7 +3773,7 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 		return NO;
 
 	// If target is beyond scanner range, it's lost
-	if(target->zero_distance > SCANNER_MAX_RANGE2)
+	if(target->zero_distance > SCANNER_MAX_RANGE2 && ![target isStation])
 		return NO;
 
 	// If target is a ship, check whether it's cloaked or is actively jamming our scanner
