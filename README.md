@@ -1,3 +1,5 @@
+![Freelancer style mouse controls](http://quantumg.net/oolite-freelancer-controls-opt1.gif)
+
 [![Build Status (Mac)](https://api.travis-ci.org/OoliteProject/oolite.svg)](https://travis-ci.org/OoliteProject/oolite)
 
 [![GitHub release](https://img.shields.io/github/release/OoliteProject/Oolite.svg)](https://github.com/OoliteProject/Oolite/releases/latest)
