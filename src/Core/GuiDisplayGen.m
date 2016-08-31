@@ -2239,6 +2239,12 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
 	OOGLEND();
 }
 
+OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
+{
+    // NO OOGL(), this is called within immediate mode blocks.
+    glColor4f(color[0], color[1], color[2], color[3] * alpha);
+}
+
 - (void) drawSystemMap:(GLfloat)x :(GLfloat)y :(GLfloat)z :(GLfloat) alpha :(BOOL)compact
 {
 	PlayerEntity* player = PLAYER;
@@ -2262,7 +2268,7 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
     NSArray *entities = [UNIVERSE entityList];
     int i;
     BOOL first = YES;
-#define ON_MAP(e) ([e isPlayer] || [e isStation] || [e isStellarObject])
+#define ON_MAP(e) ([e isPlayer] || [e isStation] || [e isStellarObject] || ([e isShip] && e->zero_distance < SCANNER_MAX_RANGE2))
     for (i = 0; i < [entities count]; i++)
     {
         Entity *entity = [entities objectAtIndex:i];
@@ -2383,6 +2389,13 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
 
         if ([entity isPlayer])
             OOGL(glColor4f(0, 1, 0, alpha));
+        else if ([entity isShip])
+        {
+            ShipEntity *ship = (ShipEntity *)entity;
+            BOOL isHostile = (([ship hasHostileTarget])&&([ship primaryTarget] == PLAYER));
+            int flash = ((int)([UNIVERSE getTime] * 4))&1;
+            GLColorWithOverallAlpha([ship scannerDisplayColorForShip:PLAYER :isHostile :flash :[ship scannerDisplayColor1] :[ship scannerDisplayColor2] :[ship scannerDisplayColorHostile1] :[ship scannerDisplayColorHostile2]],alpha);
+        }
         else
             OOGL(glColor4f(1, 1, 1, alpha));
 
@@ -2427,10 +2440,16 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
                 rx = 10.0;
             ry *= rx / orx;
 
+            HPVector fwd = vectorToHPVector(player->v_forward);
+            HPVector pos2 = HPvector_add(pos, fwd);
+            GLfloat px2 = (pos2.x - mid_x) * zoom * map_w / span_x;
+            GLfloat py2 = (pos2.y - mid_y) * zoom * map_h / span_y;
+            GLfloat pz2 = (pos2.z - mid_z) * zoom * map_h / span_y;
+            GLfloat yy2 = ((py2 + pz2) / 2) + y_mod;
+
             OOGLPushModelView();
             OOGLTranslateModelView(make_vector(map_x + px, map_y - yy, z));
-            Quaternion q = [player orientation];
-            GLfloat ax = atan2(2 * (q.x * q.y + q.z * q.w), 1 - 2 * (q.x*q.x + q.y*q.y));
+            GLfloat ax = -0.5 * M_PI + atan2(-(yy2 - yy), px2 - px);
             OOGLRotateModelView(ax, make_vector(0, 0, 1));
             OOGLBEGIN(GL_LINE_LOOP);
                 glVertex3f( 0.33 * rx,         ry,     z);
@@ -2476,12 +2495,15 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
                     cursor_y >= map_y - yy - ry && cursor_y <= map_y - yy + ry)
                 {
                     NSString *label = [(ShipEntity *)entity displayName];
-                    NSSize text_size = NSMakeSize(10.0, 10.0);
-                    NSSize strsize = OORectFromString(label, 0.0f, 0.0f, text_size).size;
-                    OODrawString(label, map_x + px - strsize.width / 2, map_y - yy - ry - 1.2 * strsize.height, z, text_size);
+                    if (label)
+                    {
+                        NSSize text_size = NSMakeSize(10.0, 10.0);
+                        NSSize strsize = OORectFromString(label, 0.0f, 0.0f, text_size).size;
+                        OODrawString(label, map_x + px - strsize.width / 2, map_y - yy - ry - 1.2 * strsize.height, z, text_size);
 
-                    if ([[UNIVERSE gameView] isDown:gvMouseLeftButton])
-                        [PLAYER addTarget: entity];
+                        if ([[UNIVERSE gameView] isDown:gvMouseLeftButton])
+                            [PLAYER addTarget: entity];
+                    }
                 }
             }
         }
