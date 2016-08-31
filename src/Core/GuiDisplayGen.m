@@ -2420,43 +2420,64 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
             ry = ph / 2;
         }
 
-        int num_segments = 32 * zoom;
-        float theta = 2 * 3.1415926 / (float)num_segments;
-        float c = cosf(theta);
-        float s = sinf(theta);
-        float t;
-        float ys = ry / rx;
-
-        float x = rx;
-        float y = 0;
-
-        OOGLBEGIN(GL_LINE_LOOP);
-            int j;
-            for (j = 0; j < num_segments; j++)
-            {
-                glVertex3f(map_x + px + x, map_y - yy - y * ys, z);
-
-                t = x;
-                x = c * x - s * y;
-                y = s * t + c * y;
-            }
-        OOGLEND();
-
-        if (entity != player && [entity isShip])
+        if (entity == player)
         {
-            NSPoint vjpos = [[UNIVERSE gameView] virtualJoystickPosition];
-            double cursor_x = size_in_pixels.width * vjpos.x;
-            double cursor_y = -size_in_pixels.height * vjpos.y;
-            if (cursor_x >= map_x + px - rx && cursor_x <= map_x + px + ry &&
-                cursor_y >= map_y - yy - ry && cursor_y <= map_y - yy + ry)
-            {
-                NSString *label = [(ShipEntity *)entity displayName];
-                NSSize text_size = NSMakeSize(10.0, 10.0);
-                NSSize strsize = OORectFromString(label, 0.0f, 0.0f, text_size).size;
-                OODrawString(label, map_x + px - strsize.width / 2, map_y - yy - ry - 1.2 * strsize.height, z, text_size);
+            OOGLPushModelView();
+            OOGLTranslateModelView(make_vector(map_x + px, map_y - yy, z));
+            Quaternion q = [player orientation];
+            GLfloat ax = atan2(2 * (q.x * q.y + q.z * q.w), 1 - 2 * (q.x*q.x + q.y*q.y));
+            OOGLRotateModelView(ax, make_vector(0, 0, 1));
+            OOGLBEGIN(GL_LINE_LOOP);
+                glVertex3f( 0.33 * rx,         ry,     z);
+                glVertex3f( 0.95 * rx, -0.5  * ry,     z);
+                glVertex3f(        rx, -0.9  * ry,     z);
+                glVertex3f(         0, -       ry,     z);
+                glVertex3f(-       rx, -0.9  * ry,     z);
+                glVertex3f(-0.95 * rx, -0.5  * ry,     z);
+                glVertex3f(-0.33 * rx,         ry,     z);
+            OOGLEND();
+            OOGLPopModelView();
+        }
+        else
+        {
+            int num_segments = 32 * zoom;
+            float theta = 2 * 3.1415926 / (float)num_segments;
+            float c = cosf(theta);
+            float s = sinf(theta);
+            float t;
+            float ys = ry / rx;
 
-                if ([[UNIVERSE gameView] isDown:gvMouseLeftButton])
-                    [PLAYER addTarget: entity];
+            float x = rx;
+            float y = 0;
+
+            OOGLBEGIN(GL_LINE_LOOP);
+                int j;
+                for (j = 0; j < num_segments; j++)
+                {
+                    glVertex3f(map_x + px + x, map_y - yy - y * ys, z);
+
+                    t = x;
+                    x = c * x - s * y;
+                    y = s * t + c * y;
+                }
+            OOGLEND();
+
+            if ([entity isShip])
+            {
+                NSPoint vjpos = [[UNIVERSE gameView] virtualJoystickPosition];
+                double cursor_x = size_in_pixels.width * vjpos.x;
+                double cursor_y = -size_in_pixels.height * vjpos.y;
+                if (cursor_x >= map_x + px - rx && cursor_x <= map_x + px + ry &&
+                    cursor_y >= map_y - yy - ry && cursor_y <= map_y - yy + ry)
+                {
+                    NSString *label = [(ShipEntity *)entity displayName];
+                    NSSize text_size = NSMakeSize(10.0, 10.0);
+                    NSSize strsize = OORectFromString(label, 0.0f, 0.0f, text_size).size;
+                    OODrawString(label, map_x + px - strsize.width / 2, map_y - yy - ry - 1.2 * strsize.height, z, text_size);
+
+                    if ([[UNIVERSE gameView] isDown:gvMouseLeftButton])
+                        [PLAYER addTarget: entity];
+                }
             }
         }
     }
