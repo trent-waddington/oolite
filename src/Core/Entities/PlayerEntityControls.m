@@ -853,10 +853,28 @@ static NSTimeInterval	time_last_frame;
 			exceptionContext = @"arrow keys";
 			// arrow keys
 			if ([UNIVERSE displayGUI])
+            {
 				[self pollGuiArrowKeyControls:delta_t];
+                if (gui_screen == GUI_SCREEN_SYSTEM_MAP)
+                {
+                    [self pollFlightArrowKeyControls:delta_t];
+
+                    if (([gameView isDown:key_increase_speed] || joyButtonState[BUTTON_INCTHRUST])&&(flightSpeed < maxFlightSpeed)&&(!afterburner_engaged))
+                    {
+                        flightSpeed += speed_delta * delta_t;
+                    }
+
+                    if (([gameView isDown:key_decrease_speed] || joyButtonState[BUTTON_DECTHRUST])&&(!afterburner_engaged))
+                    {
+                        flightSpeed -= speed_delta * delta_t;
+
+                        hyperspeed_engaged = NO;
+                    }
+                }
+            }
 			else
 				[self pollFlightArrowKeyControls:delta_t];
-			
+
 			//  view keys
 			[self pollViewControls];
 			
