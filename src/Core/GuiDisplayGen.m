@@ -2422,6 +2422,11 @@ static OOTextureSprite *NewTextureSpriteWithDescriptor(NSDictionary *descriptor)
 
         if (entity == player)
         {
+            GLfloat orx = rx;
+            if (rx < 10.0)
+                rx = 10.0;
+            ry *= rx / orx;
+
             OOGLPushModelView();
             OOGLTranslateModelView(make_vector(map_x + px, map_y - yy, z));
             Quaternion q = [player orientation];
