@@ -2283,43 +2283,36 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
     HPVector refFwd = HPvector_subtract(ref2->position, ref->position);
     HPscale_vector(&refFwd, 1.0 / HPmagnitude(refFwd));
 
-    OOHPScalar *dots = malloc(sizeof(OOHPScalar) * [entities count]);
-
-    double min_dist2 = 0, max_dist2 = 0;
-    double min_dist2_r = 0, max_dist2_r = 0;
+    double min_dist = 0, max_dist = 0;
+    double min_dist_r = 0, max_dist_r = 0;
     BOOL first = YES;
-    int player_i = 0;
 #define ON_MAP(e) ([e isPlayer] || [e isStation] || [e isStellarObject] || ([e isShip] && e->zero_distance < SCANNER_MAX_RANGE2))
     for (i = 0; i < [entities count]; i++)
     {
         Entity *entity = [entities objectAtIndex:i];
         if (!ON_MAP(entity))
             continue;
-        if (entity == player)
-            player_i = i;
-        HPVector toEntity = HPvector_subtract(entity->position, ref->position);
-        double dist2 = HPmagnitude2(toEntity);
-        dots[i] = HPdot_product(toEntity, refFwd);
+        double dist = HPdistance(entity->position, ref->position);
         float r = 0;
         if ([entity isStellarObject])
             r = [(Entity<OOStellarBody> *)entity radius];
         if (first)
         {
-            min_dist2 = max_dist2 = dist2;
-            min_dist2_r = max_dist2_r = r;
+            min_dist = max_dist = dist;
+            min_dist_r = max_dist_r = r;
             first = NO;
         }
         else
         {
-            if (dist2 < min_dist2)
+            if (dist < min_dist)
             {
-                min_dist2 = dist2;
-                min_dist2_r = r;
+                min_dist = dist;
+                min_dist_r = r;
             }
-            if (dist2 > max_dist2)
+            if (dist > max_dist)
             {
-                max_dist2 = dist2;
-                max_dist2_r = r;
+                max_dist = dist;
+                max_dist_r = r;
             }
         }
     }
@@ -2329,34 +2322,49 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
     double map_x = left + map_w / 2;
     double map_y = top - map_h / 2;
     double center_x = 0, center_y = 0;
+    GLfloat half_pi = 0; //M_PI * 0.5;
 
-    center_x = HPdistance(player->position, ref->position);
-    center_y = asin(acos(dots[player_i] / center_x)) * center_x;
+    HPVector toPlayer = HPvector_subtract(player->position, ref->position);
+    center_x = HPmagnitude(toPlayer);
+    HPscale_vector(&toPlayer, 1.0 / center_x);
+    double pdot = HPdot_product(toPlayer, refFwd);
+    center_y = sin(acos(pdot) - half_pi) * center_x;
+    if (isnan(center_y))
+        center_y = 0;
 
     double zoom = [player map_zoom];
-    GLfloat left_dist = fabs(sqrt(min_dist2)) + min_dist2_r;
-    GLfloat right_dist = fabs(sqrt(max_dist2)) + max_dist2_r;
+    GLfloat left_dist = fabs(min_dist) + min_dist_r;
+    GLfloat right_dist = fabs(max_dist) + max_dist_r;
     GLfloat half_dist = (left_dist > right_dist ? left_dist : right_dist);
     GLfloat inv_span_dist = 0.5 / half_dist;
 
-    static BOOL once = YES;
+    static BOOL once = NO; //YES;
     for (i = 0; i < [entities count]; i++)
     {
         Entity *entity = [entities objectAtIndex:i];
         if (!ON_MAP(entity))
             continue;
 
-        double dist = HPdistance(entity->position, ref->position);
+        HPVector toEntity = HPvector_subtract(entity->position, ref->position);
+        double dist = HPmagnitude(toEntity);
+        HPscale_vector(&toEntity, 1.0 / dist);
+        double dot = HPdot_product(toEntity, refFwd);
+
         GLfloat px = (dist - center_x) * zoom * map_w * inv_span_dist;
-        if (dots[i] < 0)
+        if (dot < 0)
             px = -px;
-        GLfloat py = py = (asin(acos(dots[i] / dist)) * dist - center_y) * zoom * -map_h * inv_span_dist;
+        GLfloat py = sin(acos(dot) - half_pi) * dist;
         if (isnan(py))
             py = 0;
+        py = (py - center_y) * zoom * -map_h * inv_span_dist;
 
         if (once)
         {
-            //printf("%i %f %f %s\n", i, dist, acos(dots[i] / dist) * 180 / M_PI, entity == ref ? "ref" : entity == ref2 ? "ref2" : "");
+            printf("%i %f %f %f %s\n", i, dist, (acos(dot) - half_pi) * 180 / M_PI, sin(acos(dot) - half_pi) * dist,
+       entity == ref ? "ref" :
+       entity == ref2 ? "ref2" :
+       entity == player ? "player" :
+       [entity isShip] ? [[(ShipEntity *)entity displayName] UTF8String] : "");
         }
 
         if ([entity isPlayer])
@@ -2418,13 +2426,28 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
             HPVector fwd = vectorToHPVector(player->v_forward);
             HPscale_vector(&fwd, 100.0);
             HPVector pos2 = HPvector_add(entity->position, fwd);
-            double dist2 = HPdistance(pos2, ref->position);
-            GLfloat px2 = (dist2 - center_x) * zoom * map_w * inv_span_dist;
             HPVector toPos2 = HPvector_subtract(pos2, ref->position);
+            double dist2 = HPmagnitude(toPos2);
+            HPscale_vector(&toPos2, 1.0 / dist2);
             GLfloat dot2 = HPdot_product(toPos2, refFwd);
+            GLfloat px2 = (dist2 - center_x) * zoom * map_w * inv_span_dist;
             if (dot2 < 0)
                 px2 = -px2;
-            GLfloat py2 = (asin(acos(dot2 / dist2)) * dist2 - center_y) * zoom * -map_h * inv_span_dist;
+            GLfloat py2 = sin(acos(dot2) - half_pi) * dist2;
+            if (isnan(py2))
+                py2 = 0;
+            py2 = (py2 - center_y) * zoom * -map_h * inv_span_dist;
+
+            if (once)
+            {
+                printf("to %f %f\n", dist2, (acos(dot2) - half_pi) * 180 / M_PI);
+                printf("px2 %f py2 %f\n", px2, py2);
+            }
+
+            //OOGLBEGIN(GL_LINE_LOOP);
+            //    glVertex3f( 0, 0, z);
+            //    glVertex3f( px2 - px, py2 - py, z);
+            //OOGLEND();
 
             GLfloat ax = -0.5 * M_PI + atan2(py2 - py, px2 - px);
             OOGLRotateModelView(ax, make_vector(0, 0, 1));
@@ -2488,8 +2511,6 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
         OOGLPopModelView();
     }
     once = NO;
-
-    free(dots);
 }
 
 - (void) drawSystemMarkers:(NSArray *)markers atX:(GLfloat)x andY:(GLfloat)y andZ:(GLfloat)z withAlpha:(GLfloat)alpha andScale:(GLfloat)scale
