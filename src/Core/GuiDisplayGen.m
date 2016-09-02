@@ -2259,14 +2259,31 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
     GLfloat left = x;
     GLfloat right = x + size_in_pixels.width;
 
-    double min_x = 0, max_x = 0;
-    double min_y = 0, max_y = 0;
-    double min_z = 0, max_z = 0;
-
     double bb_not_to_scale = 4.0;
 
     NSArray *entities = [UNIVERSE entityList];
+
+    Entity *ref = NULL, *ref2 = NULL;
     int i;
+    for (i = 0; (!ref || !ref2) && i < [entities count]; i++)
+    {
+        Entity *entity = [entities objectAtIndex:i];
+        if ([entity isSun])
+            ref = entity;
+        else if ([entity isPlanet])
+            ref2 = entity;
+    }
+    if (!ref)
+        return;
+    if (ref2 == NULL)
+        ref2 = player;
+    HPVector refFwd = HPvector_subtract(ref2->position, ref->position);
+    HPscale_vector(&refFwd, 1.0 / HPmagnitude(refFwd));
+
+    OOHPScalar *dots = malloc(sizeof(OOHPScalar) * [entities count]);
+
+    double min_dist2 = 0, max_dist2 = 0;
+    double min_dist2_r = 0, max_dist2_r = 0;
     BOOL first = YES;
 #define ON_MAP(e) ([e isPlayer] || [e isStation] || [e isStellarObject] || ([e isShip] && e->zero_distance < SCANNER_MAX_RANGE2))
     for (i = 0; i < [entities count]; i++)
@@ -2274,87 +2291,31 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
         Entity *entity = [entities objectAtIndex:i];
         if (!ON_MAP(entity))
             continue;
-        HPVector pos = [entity position];
+        HPVector toEntity = HPvector_subtract(entity->position, ref->position);
+        double dist2 = HPmagnitude2(toEntity);
+        dots[i] = HPdot_product(toEntity, refFwd);
+        float r = 0;
         if ([entity isStellarObject])
+            r = [(Entity<OOStellarBody> *)entity radius];
+        if (first)
         {
-
-            float r = [(Entity<OOStellarBody> *)entity radius];
-
-            if (first)
-            {
-                min_x = pos.x - r;
-                max_x = pos.x + r;
-                min_y = pos.y - r;
-                max_y = pos.y + r;
-                min_z = pos.z - r;
-                max_z = pos.z + r;
-                first = NO;
-            }
-            else
-            {
-                if (pos.x - r < min_x)
-                    min_x = pos.x - r;
-                if (pos.x + r > max_x)
-                    max_x = pos.x + r;
-                if (pos.y - r < min_y)
-                    min_y = pos.y - r;
-                if (pos.y + r > max_y)
-                    max_y = pos.y + r;
-                if (pos.z - r < min_z)
-                    min_z = pos.z - r;
-                if (pos.z + r > max_z)
-                    max_z = pos.z + r;
-            }
+            min_dist2 = max_dist2 = dist2;
+            min_dist2_r = max_dist2_r = r;
+            first = NO;
         }
         else
         {
-            GLfloat pw, ph, pd;
-            bounding_box_get_dimensions([entity boundingBox], &pw, &ph, &pd);
-            pw *= bb_not_to_scale;
-            ph *= bb_not_to_scale;
-            pd *= bb_not_to_scale;
-
-            if (first)
+            if (dist2 < min_dist2)
             {
-                min_x = pos.x - pw / 2;
-                max_x = pos.x + pw / 2;
-                min_y = pos.y - ph / 2;
-                max_y = pos.y + ph / 2;
-                min_z = pos.z - pd / 2;
-                max_z = pos.z + pd / 2;
-                first = NO;
+                min_dist2 = dist2;
+                min_dist2_r = r;
             }
-            else
+            if (dist2 > max_dist2)
             {
-                if (pos.x - pw / 2 < min_x)
-                    min_x = pos.x - pw / 2;
-                if (pos.y - ph / 2 < min_y)
-                    min_y = pos.y - ph / 2;
-                if (pos.z - pd / 2 < min_z)
-                    min_z = pos.z - pd / 2;
-                if (pos.x + pw / 2 > max_x)
-                    max_x = pos.x + pw / 2;
-                if (pos.y + ph / 2 > max_y)
-                    max_y = pos.y + ph / 2;
-                if (pos.z + pd / 2 > max_z)
-                    max_z = pos.z + pd / 2;
+                max_dist2 = dist2;
+                max_dist2_r = r;
             }
         }
-    }
-
-    double span_x = max_x - min_x;
-    double span_y = max_y - min_y;
-    double span_z = max_z - min_z;
-
-    // spans so that the player is in the center 
-    HPVector pos = [player position];
-    double diff_x = pos.x - (min_x + span_x / 2);
-    if (diff_x > 0)
-        span_x += diff_x * 2;
-    else
-    {
-        min_x += diff_x;
-        span_x -= diff_x;
     }
 
     double map_w = fabs(right - left);
@@ -2363,29 +2324,28 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
     double map_y = top - map_h / 2;
 
     double zoom = [player map_zoom];
-    double mid_x = min_x + span_x / 2;
-    double mid_y = min_y + span_y / 2;
-    double mid_z = min_z + span_z / 2;
+    GLfloat left_dist = fabs(sqrt(min_dist2)) + min_dist2_r;
+    GLfloat right_dist = fabs(sqrt(max_dist2)) + max_dist2_r;
+    GLfloat half_dist = (left_dist > right_dist ? left_dist : right_dist);
+    GLfloat inv_span_dist = 0.5 / half_dist;
 
-    double y_mod = 0;
-    GLfloat py = (pos.y - mid_y) * zoom * map_h / span_y;
-    GLfloat pz = (pos.z - mid_z) * zoom * map_h / span_y;
-    y_mod = top - map_h / 2 - ((py + pz) / 2);
-
+    first = YES;
     for (i = 0; i < [entities count]; i++)
     {
         Entity *entity = [entities objectAtIndex:i];
         if (!ON_MAP(entity))
             continue;
-        HPVector pos = [entity position];
-        GLfloat px = (pos.x - mid_x) * zoom * map_w / span_x;
-        GLfloat py = (pos.y - mid_y) * zoom * map_h / span_y;
-        GLfloat pz = (pos.z - mid_z) * zoom * map_h / span_y;
-        GLfloat yy = ((py + pz) / 2) + y_mod;
-        if (map_x + px < left || map_x + px > right)
-            continue;
-        if (map_y - yy < bottom || map_y - yy > top)
-            continue;
+
+        double dist = HPdistance(entity->position, ref->position);
+        GLfloat px = dist * zoom * map_w * inv_span_dist;
+        if (dots[i] < 0)
+            px = -px;
+        GLfloat py = 0;
+        if (entity != ref)
+        {
+            py = asin(acos(dots[i] / dist)) * dist * zoom * map_h * inv_span_dist;
+            //printf("%d %f %f %f %f %f\n", i, dots[i] / dist, acos(dots[i] / dist), asin(acos(dots[i] / dist)), asin(acos(dots[i] / dist)) * dist, py);
+        }
 
         if ([entity isPlayer])
             OOGL(glColor4f(0, 1, 0, alpha));
@@ -2408,7 +2368,7 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
             else
                 OOGL(glColor4f(0, 0.75f, 0, alpha));
             float r = [(Entity<OOStellarBody> *)entity radius];
-            r *= zoom * map_w / span_x;
+            r *= zoom * map_w * inv_span_dist;
             rx = ry = r;
         }
         else
@@ -2418,9 +2378,9 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
             pw *= bb_not_to_scale;
             ph *= bb_not_to_scale;
             pd *= bb_not_to_scale;
-            pw *= zoom * map_w / span_x;
-            ph *= zoom * map_h / span_y;
-            pd *= zoom * map_h / span_y;
+            pw *= zoom * map_w * inv_span_dist;
+            ph *= zoom * map_h * inv_span_dist;
+            pd *= zoom * map_h * inv_span_dist;
             if (pw < 1)
                 pw = 1;
             if (ph < 1)
@@ -2433,24 +2393,29 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
             ry = ph / 2;
         }
 
+        OOGLPushModelView();
+        OOGLScaleModelView(make_vector(2.0, 2.0, 1.0)); // why?
+        OOGLTranslateModelView(make_vector(map_x + px, map_y + py, z));
+
         if (entity == player)
         {
-            GLfloat orx = rx;
-            if (rx < 10.0)
-                rx = 10.0;
-            ry *= rx / orx;
+            //if (rx < 10.0)
+            //    rx = 10.0;
+            ry = rx;
 
+#if 0
             HPVector fwd = vectorToHPVector(player->v_forward);
             HPVector pos2 = HPvector_add(pos, fwd);
             GLfloat px2 = (pos2.x - mid_x) * zoom * map_w / span_x;
             GLfloat py2 = (pos2.y - mid_y) * zoom * map_h / span_y;
             GLfloat pz2 = (pos2.z - mid_z) * zoom * map_h / span_y;
             GLfloat yy2 = ((py2 + pz2) / 2) + y_mod;
+#endif
 
-            OOGLPushModelView();
-            OOGLTranslateModelView(make_vector(map_x + px, map_y - yy, z));
+#if 0
             GLfloat ax = -0.5 * M_PI + atan2(-(yy2 - yy), px2 - px);
             OOGLRotateModelView(ax, make_vector(0, 0, 1));
+#endif
             OOGLBEGIN(GL_LINE_LOOP);
                 glVertex3f( 0.33 * rx,         ry,     z);
                 glVertex3f( 0.95 * rx, -0.5  * ry,     z);
@@ -2460,7 +2425,6 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
                 glVertex3f(-0.95 * rx, -0.5  * ry,     z);
                 glVertex3f(-0.33 * rx,         ry,     z);
             OOGLEND();
-            OOGLPopModelView();
         }
         else
         {
@@ -2478,7 +2442,7 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
                 int j;
                 for (j = 0; j < num_segments; j++)
                 {
-                    glVertex3f(map_x + px + x, map_y - yy - y * ys, z);
+                    glVertex3f(x, y * ys, z);
 
                     t = x;
                     x = c * x - s * y;
@@ -2492,14 +2456,14 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
                 double cursor_x = size_in_pixels.width * vjpos.x;
                 double cursor_y = -size_in_pixels.height * vjpos.y;
                 if (cursor_x >= map_x + px - rx && cursor_x <= map_x + px + ry &&
-                    cursor_y >= map_y - yy - ry && cursor_y <= map_y - yy + ry)
+                    cursor_y >= map_y + py - ry && cursor_y <= map_y + py + ry)
                 {
                     NSString *label = [(ShipEntity *)entity displayName];
                     if (label)
                     {
                         NSSize text_size = NSMakeSize(10.0, 10.0);
                         NSSize strsize = OORectFromString(label, 0.0f, 0.0f, text_size).size;
-                        OODrawString(label, map_x + px - strsize.width / 2, map_y - yy - ry - 1.2 * strsize.height, z, text_size);
+                        OODrawString(label, -strsize.width / 2, -ry - 1.2 * strsize.height, z, text_size);
 
                         if ([[UNIVERSE gameView] isDown:gvMouseLeftButton])
                             [PLAYER addTarget: entity];
@@ -2507,7 +2471,11 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
                 }
             }
         }
+
+        OOGLPopModelView();
     }
+
+    free(dots);
 }
 
 - (void) drawSystemMarkers:(NSArray *)markers atX:(GLfloat)x andY:(GLfloat)y andZ:(GLfloat)z withAlpha:(GLfloat)alpha andScale:(GLfloat)scale
