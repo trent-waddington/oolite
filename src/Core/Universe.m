@@ -5674,6 +5674,7 @@ static BOOL MaintainLinkedLists(Universe *uni)
 	PlayerEntity	*player = PLAYER;
 	Entity			*hit_entity = nil;
 	OOScalar		nearest2 = SCANNER_MAX_RANGE - 100;	// 100m shorter than range at which target is lost
+    nearest2 = 100000000000.0f; // far range
 	nearest2 *= nearest2;
 	int				i;
 	int				ent_count = n_entities;
