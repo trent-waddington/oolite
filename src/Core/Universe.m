@@ -5596,12 +5596,6 @@ static BOOL MaintainLinkedLists(Universe *uni)
 	basis_vectors_from_quaternion(q1, &r1, &u1, &f1);
 	p0 = HPvector_add(p0, vectorToHPVector(OOVectorMultiplyMatrix(offset, OOMatrixFromBasisVectors(r1, u1, f1))));
 
-    if (isPlayer)
-    {
-        [gameView applyMouseToQuaternion: &q1];
-        basis_vectors_from_quaternion(q1, &r1, &u1, &f1);
-    }
-	
 	switch (direction)
 	{
 		case WEAPON_FACING_FORWARD:
@@ -5621,7 +5615,11 @@ static BOOL MaintainLinkedLists(Universe *uni)
 			break;
 	}
 	
-	basis_vectors_from_quaternion(q1, &r1, NULL, &f1);
+
+    if (isPlayer)
+        [gameView applyMouseToQuaternion: &q1];
+
+    basis_vectors_from_quaternion(q1, &r1, &u1, &f1);
 	HPVector p1 = HPvector_add(p0, vectorToHPVector(vector_multiply_scalar(f1, nearest)));	//endpoint
 	
 	for (i = 0; i < ship_count; i++)
@@ -5697,9 +5695,6 @@ static BOOL MaintainLinkedLists(Universe *uni)
 	
 	HPVector p1 = HPvector_add([player position], vectorToHPVector(OOVectorMultiplyMatrix(offset, OOMatrixFromBasisVectors(r1, u1, f1))));
 
-    [gameView applyMouseToQuaternion: &q1];
-	basis_vectors_from_quaternion(q1, &r1, &u1, &f1);
-	
 	// Note: deliberately tied to view direction, not weapon facing. All custom views count as forward for targeting.
 	switch (viewDirection)
 	{
@@ -5715,8 +5710,9 @@ static BOOL MaintainLinkedLists(Universe *uni)
 		default:
 			break;
 	}
-	basis_vectors_from_quaternion(q1, &r1, NULL, &f1);
-	
+    [gameView applyMouseToQuaternion: &q1];
+	basis_vectors_from_quaternion(q1, &r1, &u1, &f1);
+
 	for (i = 0; i < ship_count; i++)
 	{
 		Entity *e2 = my_entities[i];
