@@ -930,6 +930,7 @@ typedef enum
 - (void) tidyMissilePylons;
 - (BOOL) removeFromPylon:(NSUInteger) pylon;
 - (BOOL) assignToActivePylon:(NSString *)identifierKey;
+- (void) selectNextTarget:(BOOL) Previous;
 
 - (void) clearAlertFlags;
 - (int) alertFlags;

@@ -313,7 +313,7 @@ static NSTimeInterval	time_last_frame;
 	LOAD_KEY_SETTING(key_map_info,				'i'			);
 	
 	LOAD_KEY_SETTING(key_pausebutton,			'p'			);
-	LOAD_KEY_SETTING(key_show_fps,				'F'			);
+	LOAD_KEY_SETTING(key_show_fps,				'.'			);
 	LOAD_KEY_SETTING(key_mouse_control,			' '			);
 	LOAD_KEY_SETTING(key_hud_toggle,			'o'			);
 	
@@ -329,12 +329,12 @@ static NSTimeInterval	time_last_frame;
 	LOAD_KEY_SETTING(key_cycle_mfd,				';'			);
 	LOAD_KEY_SETTING(key_switch_mfd,			':'			);
 
-	LOAD_KEY_SETTING(key_next_target,			'+'			);
-	LOAD_KEY_SETTING(key_previous_target,		'-'			);
+	LOAD_KEY_SETTING(key_next_target,			'f'			);
+	LOAD_KEY_SETTING(key_previous_target,		'F'			);
 	
 	LOAD_KEY_SETTING(key_custom_view,			'v'			);
 
-	LOAD_KEY_SETTING(key_oxzmanager_setfilter,	'f'			);
+	LOAD_KEY_SETTING(key_oxzmanager_setfilter,	','			);
 	LOAD_KEY_SETTING(key_oxzmanager_showinfo,	'i'			);
 	LOAD_KEY_SETTING(key_oxzmanager_extract,	'x'			);
 	
@@ -870,6 +870,26 @@ static NSTimeInterval	time_last_frame;
 
                         hyperspeed_engaged = NO;
                     }
+
+                    if ([gameView isDown:key_next_target] || joyButtonState[BUTTON_NEXTTARGET])
+                    {
+                        if (!next_target_pressed)
+                        {
+                            [self selectNextTarget:NO];
+                        }
+                        next_target_pressed = YES;
+                    }
+                    else  next_target_pressed = NO;
+
+                    if ([gameView isDown:key_previous_target] || joyButtonState[BUTTON_PREVTARGET])
+                    {
+                        if (!previous_target_pressed)
+                        {
+                            [self selectNextTarget:YES];
+                        }
+                        previous_target_pressed = YES;
+                    }
+                    else  previous_target_pressed = NO;
                 }
             }
 			else
@@ -1032,9 +1052,9 @@ static NSTimeInterval	time_last_frame;
 				//	'+' // next target
 				if ([gameView isDown:key_next_target] || joyButtonState[BUTTON_NEXTTARGET])
 				{
-					if ((!next_target_pressed)&&([self hasEquipmentItemProviding:@"EQ_TARGET_MEMORY"]))
+					if (!next_target_pressed)
 					{
-						[self moveTargetMemoryBy:+1];
+						[self selectNextTarget:NO];
 					}
 					next_target_pressed = YES;
 				}
@@ -1044,9 +1064,9 @@ static NSTimeInterval	time_last_frame;
 				//	'-' // previous target
 				if ([gameView isDown:key_previous_target] || joyButtonState[BUTTON_PREVTARGET])
 				{
-					if ((!previous_target_pressed)&&([self hasEquipmentItemProviding:@"EQ_TARGET_MEMORY"]))
+					if (!previous_target_pressed)
 					{
-						[self moveTargetMemoryBy:-1];
+						[self selectNextTarget:YES];
 					}
 					previous_target_pressed = YES;
 				}

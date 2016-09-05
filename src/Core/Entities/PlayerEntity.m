@@ -5444,6 +5444,33 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
 	}
 }
 
+#define TARGETABLE(e) (e != self && ([e isStation] || ([e isShip] && e->zero_distance < SCANNER_MAX_RANGE2)))
+
+- (void) selectNextTarget:(BOOL) Previous
+{
+    BOOL skip = YES;
+    Entity *target = [self primaryTarget];
+    if (!target)
+        skip = NO;
+    NSArray *entities = [UNIVERSE entityList];
+    int count = [entities count];
+    int i;
+    for (i = 0; i < count * 2; i++)
+    {
+        Entity *entity = [entities objectAtIndex:(Previous ? count * 2 - i - 1 : i) % count];
+        if (skip)
+        {
+            if (entity == target)
+                skip = NO;
+            continue;
+        }
+        if (!TARGETABLE(entity))
+            continue;
+
+        [self addTarget:entity];
+        break;
+    }
+}
 
 - (void) clearAlertFlags
 {

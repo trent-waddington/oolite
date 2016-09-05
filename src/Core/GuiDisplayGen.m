@@ -2505,6 +2505,38 @@ OOINLINE void GLColorWithOverallAlpha(const GLfloat *color, GLfloat alpha)
                             [PLAYER addTarget: entity];
                     }
                 }
+
+                Entity *target = [PLAYER primaryTarget];
+                if (entity == target)
+                {
+                    GLfloat sz = 5;
+                    rx += sz;
+                    ry += sz;
+                    if (rx < ry)
+                        sz = rx * 0.5;
+                    else
+                        sz = ry * 0.5;
+                    OOGL(glColor4f(0, 1, 0, alpha));
+                    OOGLBEGIN(GL_LINES);
+                        glVertex3f(      -rx,       -ry,     z);
+                        glVertex3f( sz + -rx,       -ry,     z);
+                        glVertex3f(       rx,       -ry,     z);
+                        glVertex3f(-sz +  rx,       -ry,     z);
+                        glVertex3f(      -rx,        ry,     z);
+                        glVertex3f( sz + -rx,        ry,     z);
+                        glVertex3f(       rx,        ry,     z);
+                        glVertex3f(-sz +  rx,        ry,     z);
+
+                        glVertex3f(      -rx,       -ry,     z);
+                        glVertex3f(      -rx,  sz + -ry,     z);
+                        glVertex3f(       rx,       -ry,     z);
+                        glVertex3f(       rx,  sz + -ry,     z);
+                        glVertex3f(      -rx,        ry,     z);
+                        glVertex3f(      -rx, -sz +  ry,     z);
+                        glVertex3f(       rx,        ry,     z);
+                        glVertex3f(       rx, -sz +  ry,     z);
+                    OOGLEND();
+                }
             }
         }
 
