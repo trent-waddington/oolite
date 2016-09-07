@@ -5455,6 +5455,7 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
     NSArray *entities = [UNIVERSE entityList];
     int count = [entities count];
     int i;
+    Entity *closest = NULL;
     for (i = 0; i < count * 2; i++)
     {
         Entity *entity = [entities objectAtIndex:(Previous ? count * 2 - i - 1 : i) % count];
@@ -5467,9 +5468,20 @@ NSComparisonResult marketSorterByMassUnit(id a, id b, void *market);
         if (!TARGETABLE(entity))
             continue;
 
-        [self addTarget:entity];
-        break;
+        if (target != NULL)
+        {
+            [self addTarget:entity];
+            return;
+        }
+
+        if (closest == NULL)
+            closest = entity;
+        else if (entity->zero_distance < closest->zero_distance)
+            closest = entity;
     }
+
+    if (closest)
+        [self addTarget:closest];
 }
 
 - (void) clearAlertFlags
