@@ -1001,6 +1001,9 @@ static uint16_t PersonalityForCommanderDict(NSDictionary *dict);
 
 NSComparisonResult sortCommanders(id cdr1, id cdr2, void *context)
 {
+    if ([cdr1 objectForKey:@"creation_date"] != nil &&
+        [cdr2 objectForKey:@"creation_date"] != nil)
+        return [[cdr2 objectForKey:@"creation_date"] compare:[cdr1 objectForKey:@"creation_date"]];
 	return [[cdr1 objectForKey:@"saved_game_path"] localizedCompare:[cdr2 objectForKey:@"saved_game_path"]];
 }
 
@@ -1047,6 +1050,8 @@ NSComparisonResult sortCommanders(id cdr1, id cdr2, void *context)
 					NSMutableDictionary* cdr1 = [NSMutableDictionary dictionaryWithDictionary:cdr];
 					[cdr1 setObject: @"YES" forKey:@"isSavedGame"];
 					[cdr1 setObject: path forKey:@"saved_game_path"];
+                    NSDictionary *attrs = [cdrFileManager attributesOfItemAtPath:path error:NULL];
+                    [cdr1 setObject: [attrs objectForKey: NSFileCreationDate] forKey:@"creation_date"];
 					[cdrDetailArray addObject: cdr1];
 				}
 			}
@@ -1145,9 +1150,55 @@ NSComparisonResult sortCommanders(id cdr1, id cdr2, void *context)
 		if ([cdr oo_boolForKey:@"isSavedGame"])
 		{
 			NSString *ratingDesc = OODisplayRatingStringFromKillCount([cdr oo_unsignedIntForKey:@"ship_kills"]);
+            NSDate *date = [cdr objectForKey:@"creation_date"];
+            NSString *dateDesc = [date description];
+            NSTimeInterval age = [date timeIntervalSinceNow];
+            if (age < 0)
+            {
+                age = -age;
+                double minutes = age / 60;
+                double hours = minutes / 60;
+                double days = hours / 24;
+                double weeks = days / 7;
+                double months = days / 30;
+                double years = days / 365;
+                minutes = floor(minutes);
+                hours = floor(hours);
+                days = floor(days);
+                weeks = floor(weeks);
+                months = floor(months);
+                years = floor(years);
+                if (years > 1)
+                    dateDesc = [NSString stringWithFormat:@"%d years ago",(int)years];
+                else if (years > 0)
+                    dateDesc = @"1 year ago";
+                else if (months > 1)
+                    dateDesc = [NSString stringWithFormat:@"%d months ago",(int)months];
+                else if (months > 0)
+                    dateDesc = @"1 month ago";
+                else if (weeks > 1)
+                    dateDesc = [NSString stringWithFormat:@"%d weeks ago",(int)weeks];
+                else if (weeks > 0)
+                    dateDesc = @"1 week ago";
+                else if (days > 1)
+                    dateDesc = [NSString stringWithFormat:@"%d days ago",(int)days];
+                else if (days > 0)
+                    dateDesc = @"1 day ago";
+                else if (hours > 1)
+                    dateDesc = [NSString stringWithFormat:@"%d hours ago",(int)hours];
+                else if (hours > 0)
+                    dateDesc = @"1 hour ago";
+                else if (minutes > 1)
+                    dateDesc = [NSString stringWithFormat:@"%d minutes ago",(int)minutes];
+                else if (minutes > 0)
+                    dateDesc = @"1 minute ago";
+                else
+                    dateDesc = @"Just now";
+            }
 			[gui setArray:[NSArray arrayWithObjects:
 				[NSString stringWithFormat:@" %@ ",[cdr oo_stringForKey:@"player_save_name" defaultValue:[cdr oo_stringForKey:@"player_name"]]],
 				[NSString stringWithFormat:@" %@ ",ratingDesc],
+                [NSString stringWithFormat:@" %@ ",dateDesc],
 				nil]
 				   forRow:row];
 			if ([[self lastsaveName] isEqualToString:[cdr oo_stringForKey:@"player_save_name" defaultValue:[cdr oo_stringForKey:@"player_name"]]])
