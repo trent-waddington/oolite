@@ -4401,14 +4401,13 @@ static BOOL autopilot_pause;
 		case GUI_SCREEN_INTRO1:
 			[self handleGUIUpDownArrowKeys];
 
-			int row_zero = 21;
 			if (!selectPressed)
 			{
                 BOOL was_click = [gameView wasLeftButtonClicked];
 
 				if (!disc_operation_in_progress)
 				{
-					if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13] || was_click) && [gui selectedRow] == 2+row_zero)
+					if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13] || was_click) && [gui selectedRow] == GUI_ROW_INTRO_LOADGAME)
 					{
 						disc_operation_in_progress = YES;
 						[UNIVERSE removeDemoShips];
@@ -4420,24 +4419,24 @@ static BOOL autopilot_pause;
 						break;
 					}
 				}
-				if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13] || was_click) && [gui selectedRow] == 1+row_zero)
+				if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13] || was_click) && [gui selectedRow] == GUI_ROW_INTRO_NEWGAME)
 				{
 					missionTextRow = 0;
 					[self setGuiToScenarioScreen:0];
 				} 
-				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == 3+row_zero)
+				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == GUI_ROW_INTRO_SHIPS)
 				{
 					[self setGuiToIntroFirstGo:NO];
 				}
-				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == 4+row_zero)
+				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == GUI_ROW_INTRO_SETTINGS)
 				{
 					[self setGuiToKeySettingsScreen];
 				}
-				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == 5+row_zero)
+				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == GUI_ROW_INTRO_EXPANSIONS)
 				{
 					[self setGuiToOXZManager];
 				}
-				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == 6+row_zero)
+				else if (([gameView isDown:gvMouseDoubleClick] || was_click || [gameView isDown:13]) && [gui selectedRow] == GUI_ROW_INTRO_EXIT)
 				{
 					[[UNIVERSE gameController] exitAppWithContext:@"Exit Game selected on start screen"];
 				}

@@ -9513,51 +9513,52 @@ static NSString *last_outfitting_key=nil;
 	[gui setText:text forRow:17 align:GUI_ALIGN_CENTER];
 	[gui setColor:[OOColor grayColor] forRow:17];
 		
-	int row = 22;
+	int row = GUI_ROW_INTRO_NEWGAME;
 
-	text = DESC(@"oolite-start-option-1");
+	text = DESC(@"oolite-start-option-newgame");
 	[gui setText:text forRow:row align:GUI_ALIGN_CENTER];
 	[gui setColor:[OOColor yellowColor] forRow:row];
 	[gui setKey:[NSString stringWithFormat:@"Start:%d", row] forRow:row];
 
-	++row;
+	row = GUI_ROW_INTRO_LOADGAME;
 
-	text = DESC(@"oolite-start-option-2");
+	text = DESC(@"oolite-start-option-loadgame");
 	[gui setText:text forRow:row align:GUI_ALIGN_CENTER];
 	[gui setColor:[OOColor yellowColor] forRow:row];
 	[gui setKey:[NSString stringWithFormat:@"Start:%d", row] forRow:row];
 
-	++row;
+	row = GUI_ROW_INTRO_SHIPS;
 
-	text = DESC(@"oolite-start-option-3");
+	text = DESC(@"oolite-start-option-ships");
 	[gui setText:text forRow:row align:GUI_ALIGN_CENTER];
 	[gui setColor:[OOColor yellowColor] forRow:row];
 	[gui setKey:[NSString stringWithFormat:@"Start:%d", row] forRow:row];
 
-	++row;
+	row = GUI_ROW_INTRO_SETTINGS;
 
-	text = DESC(@"oolite-start-option-4");
+	text = DESC(@"oolite-start-option-settings");
 	[gui setText:text forRow:row align:GUI_ALIGN_CENTER];
 	[gui setColor:[OOColor yellowColor] forRow:row];
 	[gui setKey:[NSString stringWithFormat:@"Start:%d", row] forRow:row];
 
-	++row;
+	row = GUI_ROW_INTRO_EXPANSIONS;
 
-	text = DESC(@"oolite-start-option-5");
+	text = DESC(@"oolite-start-option-expansions");
 	[gui setText:text forRow:row align:GUI_ALIGN_CENTER];
 	[gui setColor:[OOColor yellowColor] forRow:row];
 	[gui setKey:[NSString stringWithFormat:@"Start:%d", row] forRow:row];
 
-	++row;
+	row = GUI_ROW_INTRO_EXIT;
 
-	text = DESC(@"oolite-start-option-6");
+	text = DESC(@"oolite-start-option-exit");
 	[gui setText:text forRow:row align:GUI_ALIGN_CENTER];
 	[gui setColor:[OOColor yellowColor] forRow:row];
 	[gui setKey:[NSString stringWithFormat:@"Start:%d", row] forRow:row];
 
 
-	[gui setSelectableRange:NSMakeRange(22,6)];
-	[gui setSelectedRow:22];
+	[gui setSelectableRange:NSMakeRange(GUI_ROW_INTRO_NEWGAME,
+                            GUI_ROW_INTRO_EXIT - GUI_ROW_INTRO_NEWGAME + 1)];
+	[gui setSelectedRow:GUI_ROW_INTRO_NEWGAME];
 
 	[gui setBackgroundTextureKey:@"intro"];
 
