@@ -1076,6 +1076,7 @@
 	"load-previous-commander-yes"	= "y"; // Defines the key that corresponds to the yes answer to load-previous-commander.
 	"load-previous-commander-no"	= "n"; // Defines the key that corresponds to the no answer to load-previous-commander.
 	
+	"oolite-start-option-resume"    = " Resume Commander ";
 	"oolite-start-option-newgame"   = " Start New Commander ";
 	"oolite-start-option-loadgame"  = " Load Commander ";
 	"oolite-start-option-ships"		= " View Ship Library ";

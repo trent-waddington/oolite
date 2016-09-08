@@ -168,6 +168,7 @@ enum
 	GUI_ROW_CHART_SYSTEM				= 19,
 	GUI_ROW_CHART_SYSTEM_COMPACT		= 17,
 	GUI_ROW_PLANET_FINDER				= 20,
+    GUI_ROW_INTRO_RESUME                = 21,
     GUI_ROW_INTRO_NEWGAME               = 22,
     GUI_ROW_INTRO_LOADGAME              = 23,
     GUI_ROW_INTRO_SHIPS                 = 24,

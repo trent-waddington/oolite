@@ -9513,7 +9513,17 @@ static NSString *last_outfitting_key=nil;
 	[gui setText:text forRow:17 align:GUI_ALIGN_CENTER];
 	[gui setColor:[OOColor grayColor] forRow:17];
 		
-	int row = GUI_ROW_INTRO_NEWGAME;
+	int row = GUI_ROW_INTRO_RESUME;
+
+    if ([self mostRecentSave] != NULL)
+    {
+        text = DESC(@"oolite-start-option-resume");
+        [gui setText:text forRow:row align:GUI_ALIGN_CENTER];
+        [gui setColor:[OOColor yellowColor] forRow:row];
+        [gui setKey:[NSString stringWithFormat:@"Start:%d", row] forRow:row];
+    }
+
+	row = GUI_ROW_INTRO_NEWGAME;
 
 	text = DESC(@"oolite-start-option-newgame");
 	[gui setText:text forRow:row align:GUI_ALIGN_CENTER];
@@ -9556,9 +9566,18 @@ static NSString *last_outfitting_key=nil;
 	[gui setKey:[NSString stringWithFormat:@"Start:%d", row] forRow:row];
 
 
-	[gui setSelectableRange:NSMakeRange(GUI_ROW_INTRO_NEWGAME,
-                            GUI_ROW_INTRO_EXIT - GUI_ROW_INTRO_NEWGAME + 1)];
-	[gui setSelectedRow:GUI_ROW_INTRO_NEWGAME];
+    if ([self mostRecentSave] == NULL)
+    {
+        [gui setSelectableRange:NSMakeRange(GUI_ROW_INTRO_NEWGAME,
+                                GUI_ROW_INTRO_EXIT - GUI_ROW_INTRO_NEWGAME + 1)];
+        [gui setSelectedRow:GUI_ROW_INTRO_NEWGAME];
+    }
+    else
+    {
+        [gui setSelectableRange:NSMakeRange(GUI_ROW_INTRO_RESUME,
+                                GUI_ROW_INTRO_EXIT - GUI_ROW_INTRO_RESUME + 1)];
+        [gui setSelectedRow:GUI_ROW_INTRO_RESUME];
+    }
 
 	[gui setBackgroundTextureKey:@"intro"];
 

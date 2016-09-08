@@ -803,6 +803,37 @@ static uint16_t PersonalityForCommanderDict(NSDictionary *dict);
 	return loadedOK;
 }
 
+- (NSString *) mostRecentSave
+{
+    NSFileManager *cdrFileManager = [NSFileManager defaultManager];
+    NSString *directory = [[UNIVERSE gameController] playerFileDirectory];
+    NSArray *cdrArray = [cdrFileManager commanderContentsOfPath: directory];
+    NSDate *mostRecent = NULL;
+    NSString *mostRecentPath = NULL;
+
+    int i;
+    for(i = 0; i < [cdrArray count]; i++)
+    {
+        NSString*   path = [cdrArray objectAtIndex:i];
+        BOOL        exists, isDirectory = NO;
+
+        exists = [cdrFileManager fileExistsAtPath:path isDirectory:&isDirectory];
+
+        if (!exists || isDirectory)
+            continue;
+
+        NSDictionary *attrs = [cdrFileManager attributesOfItemAtPath:path error:NULL];
+        NSDate *created = [attrs objectForKey: NSFileCreationDate];
+        if (mostRecent == NULL || [created isGreaterThan:mostRecent])
+        {
+            mostRecent = created;
+            mostRecentPath = path;
+        }
+    }
+
+    return mostRecentPath;
+}
+
 @end
 
 

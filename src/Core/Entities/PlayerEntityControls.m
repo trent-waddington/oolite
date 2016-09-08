@@ -4418,6 +4418,18 @@ static BOOL autopilot_pause;
 						}
 						break;
 					}
+
+					if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13] || was_click) && [gui selectedRow] == GUI_ROW_INTRO_RESUME)
+                    {
+						disc_operation_in_progress = YES;
+						[UNIVERSE removeDemoShips];
+						[gui clearBackground];
+						if (![self loadPlayerFromFile:[self mostRecentSave] asNew:NO])
+						{
+							[self setGuiToIntroFirstGo:YES];
+						}
+						break;
+                    }
 				}
 				if (([gameView isDown:gvMouseDoubleClick] || [gameView isDown:13] || was_click) && [gui selectedRow] == GUI_ROW_INTRO_NEWGAME)
 				{
