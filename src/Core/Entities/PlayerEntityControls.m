@@ -3781,7 +3781,7 @@ static NSTimeInterval	time_last_frame;
         [self increase_flight_roll:isCtrlDown ? flightArrowKeyPrecisionFactor*roll_dampner*roll_delta : delta_t*roll_delta];
         rolling = YES;
     }
-    else if (([gameView isLeftButtonDownAWhile] || mouse_control_on) && !capsLockCustomView)
+    else if (([gameView isLeftButtonDownAWhile] || mouse_control_on) && !capsLockCustomView && ![gameView isDown:gvMouseRightButton])
     {
         int mx, my;
         SDL_GetMouseState(&mx, &my);
@@ -3852,7 +3852,7 @@ static NSTimeInterval	time_last_frame;
         [self decrease_flight_pitch:isCtrlDown ? flightArrowKeyPrecisionFactor*pitch_dampner*pitch_delta : delta_t*pitch_delta];
         pitching = YES;
     }
-    else if (([gameView isLeftButtonDownAWhile] || mouse_control_on) && !capsLockCustomView)
+    else if (([gameView isLeftButtonDownAWhile] || mouse_control_on) && !capsLockCustomView && ![gameView isDown:gvMouseRightButton])
     {
         int mx, my;
         SDL_GetMouseState(&mx, &my);
